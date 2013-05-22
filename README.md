@@ -5,10 +5,10 @@
 Right now, what works is the loading of states as supported by ui-router.  Modifying those states manually with script is implemented but not tested.  No support yet for lazy loading routes or server-driven updates/modifications/deletes.
 
 steps:
-npm install
-grunt build
-node server.js
-http://localhost/sample
+* npm install
+* grunt build
+* node server.js
+* http://localhost/sample
 
 If you run grunt (as opposed to grunt build) it will try to run tests that are not yet functional.
 
