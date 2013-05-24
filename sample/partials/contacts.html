@@ -2,10 +2,10 @@
   <div class="span3">
     <div class="pa-sidebar well well-small">
       <ul class="nav nav-list">
-        <li ng-class="{ active: $state.includes('contacts.list') }"><a href="#/contacts">All Contacts</a></li>
+        <li ng-class="{ active: $detour.includes('contacts.list') }"><a href="#/contacts">All Contacts</a></li>
         <li class="nav-header">Top Contacts</li>
         <li ng-repeat="contact in contacts | limitTo:2"
-            ng-class="{ active: $state.includes('contacts.detail') && $stateParams.contactId == contact.id }">
+            ng-class="{ active: $detour.includes('contacts.detail') && $stateParams.contactId == contact.id }">
           <a href="#/contacts/{{contact.id}}" >{{contact.name}}</a>
         </li>
       </ul>

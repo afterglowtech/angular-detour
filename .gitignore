@@ -1,4 +1,7 @@
-build
+dist/dependencies
+components
+lib
 node_modules
-core_test
+
 test
+core_test

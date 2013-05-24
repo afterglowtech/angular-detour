@@ -1,7 +1,3 @@
-/*jshint globalstrict:true*/
-/*global angular:false*/
-'use strict';
-
 var isDefined = angular.isDefined,
     isFunction = angular.isFunction,
     isString = angular.isString,
@@ -37,4 +33,4 @@ function merge(dst) {
   return dst;
 }
 
-angular.module('agt.detour', ['ng']);
+angular.module('agt.detour', ['ng', 'agt.couchPotato']);

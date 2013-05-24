@@ -1,0 +1,27 @@
+{
+  "name": "angular-detour",
+  "version": "0.0.2",
+  "main": [
+    "dist/angular-detour.js"
+  ],
+  "description": "Lazy-loaded/runtime-configurable/server-defined routing for AngularJS applications based on ui-router",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/afterglowtech/angular-detour.git"
+  },
+  "ignore": [
+    "sample",
+    "src",
+    "*.js",
+    "*.jshintrc",
+    "*.gitignore",
+    "package.json"
+  ],
+  "dependencies": {
+  },
+  "devDependencies": {
+    "angular-couchPotato" : "afterglowtech/angular-couchPotato",
+    "angular": "johannestroeger/bower-angular-unstable",
+    "requirejs": "~2.1.5"
+  }
+}

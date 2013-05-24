@@ -13,8 +13,7 @@
   "eqnull":true,
 
   "globals" : {
-    "window" : false,
-    "module" : false,
+    "angular" : false,
     "requirejs" :false
   }
 }
