@@ -13,11 +13,12 @@ To run the sample:
 
 *key changes from ui-router*
 * StatesTree -- nodes implement the functionality of building states that ui-router contains in its states function
-* folds urlRouter into the detourProver (nee stateProvider) so that it can manage such URL rules as "aliases"
+* folds urlRouter into the detourProvider (nee stateProvider) so that it can manage URL rules as "aliases"
 * wraps couchPotato to lazy-load/define component dependencies of states (in the current sample the only lazy components are controllers)
 
 #### Implementation
-* **angular-ui/ui-router**: Integration points with ui-router are up in the air as that project progresses.  Although there is no expectation, it is theoretically possible that in the future, ui-router could be factored such that it could be used without changes.  The keys to that would be:
+
+Integration points with ui-router are up in the air as that project progresses.  Although there is no expectation, it is theoretically possible that in the future, ui-router could be factored such that it could be used without changes.  The keys to that would be:
 * runtime editability of state definitions
 * a callout prior to invoking the fallback state that would allow for a promise-based attempt to lazy-load a route that is not-yet defined to the client (this be easier to explain by example when it's ready)
 
