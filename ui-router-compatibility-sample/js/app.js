@@ -4,12 +4,16 @@ define([], function () {
   var app = angular.module('app', ['agt.detour']);
   app.config(['$locationProvider', '$detourProvider',
     function ($locationProvider, $detourProvider) {
-      //$locationProvider.html5Mode(true);
+      //demonstrates ui-router style syntax
+      //plus:
+      // otherwise function (on $detourProvider instead of $urlRouterProvider)
+      // aliases (instead of $urlRouterProvider when functions)
+      // dependencies (lazy-loading controllers)
 
       $detourProvider.otherwise('/404');
       $detourProvider.state('404', {
         url: '/404',
-        templateUrl: '/sample/partials/fourOhfour.html'
+        templateUrl: 'partials/fourOhfour.html'
       });
 
 
@@ -21,24 +25,21 @@ define([], function () {
           'redirect in action.<' + '/p><p>Just don\'t <a href="#/getLost">get lost<' + '/a>!<' + '/p>'
       });
 
-      var contacts = $detourProvider.setChild({
-        localName: 'contacts',
+      $detourProvider.state('contacts', {
         url: '/contacts',
         abstract: true,
-        templateUrl: '/sample/partials/contacts.html',
+        templateUrl: 'partials/contacts.html',
         controller: 'contactsController',
         dependencies: ['controllers/contactsController']
       });
 
-      contacts.setChild({
-        localName: 'list',
+      $detourProvider.state('contacts.list', {
         url: '',
-        templateUrl: '/sample/partials/contacts.list.html'
+        templateUrl: 'partials/contacts.list.html'
       });
 
-      var detail = contacts.setChild({
-        localName: 'detail',
-        // parent: 'contacts',
+      $detourProvider.state('detail', {
+        parent: 'contacts',
         url: '/{contactId}',
         aliases: {'/c?id': '/:id', '/user/{id}': '/:id'},
         resolve: {
@@ -51,7 +52,7 @@ define([], function () {
         dependencies: ['controllers/contactsDetailController'],
         views: {
           '': {
-            templateUrl: '/sample/partials/contacts.detail.html',
+            templateUrl: 'partials/contacts.detail.html',
             controller: 'contactsDetailController'
           },
           'hint@': {
@@ -70,14 +71,13 @@ define([], function () {
         }
       });
 
-      var detailItem = detail.setChild({
-        localName: 'item',
-        // parent: 'contacts.detail',
+      $detourProvider.state('item', {
+        parent: 'contacts.detail',
         url: '/item/:itemId',
         dependencies: ['controllers/contactsDetailItemController'],
         views: {
           '': {
-            templateUrl: '/sample/partials/contacts.detail.item.html',
+            templateUrl: 'partials/contacts.detail.item.html',
             controller: 'contactsDetailItemController'
           },
           'hint@': {
@@ -86,19 +86,16 @@ define([], function () {
         }
       });
 
-      detailItem.setChild({
-        localName: 'edit',
+      $detourProvider.state('contacts.detail.item.edit', {
         dependencies: ['controllers/contactsDetailItemEditController'],
         views: {
           '@contacts.detail': {
-            templateUrl: '/sample/partials/contacts.detail.item.edit.html',
+            templateUrl: 'partials/contacts.detail.item.edit.html',
             controller: 'contactsDetailItemEditController'
           }
         }
       });
-
-      $detourProvider.setChild({
-        localName: 'about',
+      $detourProvider.state('about', {
         url: '/about',
         templateProvider:
           [        '$timeout',

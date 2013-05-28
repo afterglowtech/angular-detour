@@ -1,5 +1,5 @@
 require.config({
-  baseUrl: '/sample/js'
+  baseUrl: 'js'
 });
 
 require( [

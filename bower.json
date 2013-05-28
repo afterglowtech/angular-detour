@@ -1,8 +1,8 @@
 {
   "name": "angular-detour",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": [
-    "dist/angular-detour.js"
+    "dist/angular-detour.min.js"
   ],
   "description": "Lazy-loaded/runtime-configurable/server-defined routing for AngularJS applications based on ui-router",
   "repository": {
@@ -10,7 +10,8 @@
     "url": "git://github.com/afterglowtech/angular-detour.git"
   },
   "ignore": [
-    "sample",
+    "runtime-configuration-sample",
+    "ui-router-compatibility-sample",
     "src",
     "*.js",
     "*.jshintrc",

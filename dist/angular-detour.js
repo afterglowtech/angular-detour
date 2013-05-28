@@ -1,4 +1,4 @@
-/*! angular-detour - v0.0.2 - 2013-05-24
+/*! angular-detour - v0.0.3 - 2013-05-28
  * https://github.com/afterglowtech/angular-detour
  * Copyright (c) 2013 [object Object];
  *    Based on and uses software code found at https://github.com/angular-ui/ui-router which is 
@@ -976,6 +976,19 @@ function $DetourProvider(
   };
 
   //*********************************************
+  // removeChild
+  //*********************************************
+  //undefines the child (and any descendants of the child)
+  State.prototype.removeChild = function(localName) {
+    if (this.children[localName]) {
+      delete this.children[localName];
+    }
+    //this._needsInit = true;
+    return this;
+  };
+
+
+  //*********************************************
   // setChildState
   //*********************************************
   //this redefines the child in place (i.e. doesn't wipe out its children)
@@ -994,6 +1007,7 @@ function $DetourProvider(
 
     this.children[state.localName] = state;
     state._parent = this;
+    this._needsInit = true;
     return state;
   };
 
@@ -1025,7 +1039,7 @@ function $DetourProvider(
     var parent, localName;
     if (stateDef.parent) {
       parent = this.getState(stateDef.parent);
-      localName = stateDef.name;
+      localName = stateDef.fullName;
     }
     else
     {
@@ -1033,7 +1047,7 @@ function $DetourProvider(
         ? stateDef.fullName
         : stateDef.name;
 
-      var parts = /^(.*?)\.?([^\.]*)/.exec(fullName);
+      var parts = /^(.*?)\.?([^\.]*)$/.exec(fullName);
 
       var parentName = parts[1];
       localName = parts[2];
@@ -1062,7 +1076,7 @@ function $DetourProvider(
   State.prototype.setState = function(stateDef, deep) {
     var parent = this.prepareFlatDefinitionAndGetParent(stateDef);
 
-    parent.setChild(stateDef, deep);
+    return parent.setChild(stateDef, deep);
   };
 
   //*********************************************
@@ -1074,7 +1088,7 @@ function $DetourProvider(
   State.prototype.updateState = function(stateDef) {
     var parent = this.prepareFlatDefinitionAndGetParent(stateDef);
 
-    parent.updateChild(stateDef);
+    return parent.updateChild(stateDef);
   };
 
   //*********************************************
@@ -1275,15 +1289,14 @@ function $DetourProvider(
   }
   this.initialize = initialize;
 
-  function setChild(stateDef, deep) {
-    return statesTree.setChild(stateDef, deep);
+  function removeState(fullName) {
+    var state = this.getState(fullName);
+    if (state) {
+      state.parent.removeChild(state.localName);
+    }
+    return this;
   }
-  this.setChild = setChild;
-
-  function updateChild(stateDef) {
-    return statesTree.updateChild(stateDef);
-  }
-  this.updateChild = updateChild;
+  this.removeState = removeState;
 
   function setState(stateDef) {
     return statesTree.setState(stateDef);
@@ -1306,9 +1319,6 @@ function $DetourProvider(
   //***************************************
   function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato) {
 
-    console.log('window.location.pathname: ' + window.location.pathname);
-    console.log('$location.path(): ' + $location.path());
-
     var TransitionSuperseded = $q.reject(new Error('transition superseded'));
     var TransitionPrevented = $q.reject(new Error('transition prevented'));
 
@@ -1324,6 +1334,15 @@ function $DetourProvider(
     $detour.registerFilter = $couchPotato.registerFilter;
     $detour.registerDirective = $couchPotato.registerDirective;
     $detour.registerController = $couchPotato.registerController;
+
+
+    $detour.state = state;
+    $detour.otherwise = otherwise;
+    $detour.initialize = initialize;
+    $detour.setState = setState;
+    $detour.updateState = updateState;
+    $detour.getState = getState;
+    $detour.removeState = removeState;
 
     //***************************************
     //transitionTo
@@ -1449,7 +1468,13 @@ function $DetourProvider(
     };
 
     $detour.includes = function (stateOrName) {
-      return $detour.$current.includes[statesTree.getState(stateOrName).name];
+      var state = statesTree.getState(stateOrName);
+      if (state) {
+        return $detour.$current.includes[state.name];
+      }
+      else {
+        return false;
+      }
     };
 
     function resolveState(state, params, paramsAreFiltered, inherited, dst) {

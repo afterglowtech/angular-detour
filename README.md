@@ -9,12 +9,13 @@ To run the sample:
 * npm install
 * grunt build
 * node sample-server.js
-* visit localhost:3006/sample
+* visit localhost:3006/ui-router-compatibility-sample and localhost:3006/runtime-configuration-sample
 
 *key changes from ui-router*
 * StatesTree -- nodes implement the functionality of building states that ui-router contains in its states function
 * folds urlRouter into the detourProvider (nee stateProvider) so that it can manage URL rules as "aliases"
 * wraps couchPotato to lazy-load/define component dependencies of states (in the current sample the only lazy components are controllers)
+* exposes configurability at runtime
 
 #### Implementation
 

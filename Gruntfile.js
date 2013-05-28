@@ -82,7 +82,7 @@ module.exports = function(grunt) {
           banner: '<%= banner %>'
         },
         src:'<%= dirs.dist %>/<%= pkg.name %>.js',
-        dest:'<%= dirs.dist %>/<%= pkg.name %>-min.js'
+        dest:'<%= dirs.dist %>/<%= pkg.name %>.min.js'
       }
     },
     jshint:{
