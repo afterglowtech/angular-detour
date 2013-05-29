@@ -1,6 +1,6 @@
-/*! angular-detour - v0.0.3 - 2013-05-28
+/*! angular-detour - v0.0.4 - 2013-05-29
  * https://github.com/afterglowtech/angular-detour
- * Copyright (c) 2013 [object Object];
+ * Copyright (c) 2013 Stu Salsbury;
  *    Based on and uses software code found at https://github.com/angular-ui/ui-router which is 
  *    Copyright (c) 2013, Karsten Sperling
  * Licensed MIT
@@ -9,120 +9,14 @@
 'use strict';
 //ECMAScript 5 rules apply.
 //Self-invoking anonymous function keeps global scope clean.
-// Source: lib/angular-couchPotato/angular-CouchPotato.js
-/*! angular-couchPotato - v0.0.2 - 2013-05-24
+// Source: lib/angular-couchPotato/angular-CouchPotato.min.js
+/*! angular-couchPotato - v0.0.4 - 2013-05-29
  * https://github.com/afterglowtech/angular-couchPotato
- * Copyright (c) 2013 [object Object];
+ * Copyright (c) 2013 Stu Salsbury;
  *    Uses software code found at https://github.com/szhanginrhythm/angular-require-lazyload
  * Licensed MIT
  */
-(function() {
-//ECMAScript 5 rules apply.
-//Self-invoking anonymous function keeps global scope clean.
-
-  //Register the module.
-  //Getting angular onto the global scope is the client's responsibility.
-  var module = angular.module('agt.couchPotato', ['ng']);
-
-  //couchPotato uses these providers to do its registration work.
-  function CouchPotatoProvider(
-    $controllerProvider,
-    $compileProvider,
-    $provide,
-    $filterProvider
-  ) {
-
-    //Expose each provider's functionality as single-argument functions.
-    //The component-definining functions that are passed as parameters
-    //should bear their own names.
-
-    function registerValue(value) {
-        $provide.value.apply(null, value);
-    }
-
-    function registerFactory(factory) {
-        $provide.factory.apply(null, factory);
-    }
-
-    function registerFilter(filter) {
-        $filterProvider.register.apply(null, filter);
-    }
-
-    function registerDirective(directive) {
-        $compileProvider.directive.apply(null, directive);
-    }
-
-    function registerController(controller) {
-        $controllerProvider.register.apply(null, controller);
-    }
-
-    function resolveDependencies(dependencies) {
-      function delay($q, $rootScope) {
-        var defer = $q.defer();
-
-        require(dependencies, function() {
-          defer.resolve();
-          $rootScope.$apply();
-        });
-        return defer.promise;
-      }
-      delay.$inject = ['$q', '$rootScope'];
-      return delay;
-    }
-    this.resolveDependencies = resolveDependencies;
-
-
-    function resolveDependenciesProperty(configProperties) {
-      if (configProperties.dependencies) {
-        var resolveConfig = configProperties;
-        var deps = configProperties.dependencies;
-        delete resolveConfig['dependencies'];
-
-        resolveConfig.resolve = {};
-        resolveConfig.resolve.delay = resolveDependencies(deps);
-
-        return resolveConfig;
-      }
-      else
-      {
-        return configProperties;
-      }
-
-    }
-    this.resolveDependenciesProperty = resolveDependenciesProperty;
-
-    //***************************************
-    //service definition -- expose the registration
-    //functions during run-time as a service
-    //***************************************
-    this.$get = function () {
-      var svc = {};
-
-      svc.registerValue = registerValue;
-      svc.registerFactory = registerFactory;
-      svc.registerFilter = registerFilter;
-      svc.registerDirective = registerDirective;
-      svc.registerController = registerController;
-
-      svc.resolveDependenciesProperty = resolveDependenciesProperty;
-      svc.resolveDependencies = resolveDependencies;
-
-      return svc;
-    };
-
-  }
-  CouchPotatoProvider.$inject = [
-    '$controllerProvider',
-    '$compileProvider',
-    '$provide',
-    '$filterProvider'
-  ]; //inject the providers into CouchPotatoProvider
-
-  //register the provider/service
-  module.provider('$couchPotato', CouchPotatoProvider);
-
-}());
-
+(function(){"use strict";function e(e,r,n,t){function i(e){n.value.apply(null,e)}function o(e){n.factory.apply(null,e)}function l(e){t.register.apply(null,e)}function c(e){r.directive.apply(null,e)}function u(r){e.register.apply(null,r)}function s(e){function r(r,n){var t=r.defer();return require(e,function(){t.resolve(),n.$apply()}),t.promise}return r.$inject=["$q","$rootScope"],r}function p(e){if(e.dependencies){var r=e,n=e.dependencies;return delete r.dependencies,r.resolve={},r.resolve.delay=s(n),r}return e}this.resolveDependencies=s,this.resolveDependenciesProperty=p,this.$get=function(){var e={};return e.registerValue=i,e.registerFactory=o,e.registerFilter=l,e.registerDirective=c,e.registerController=u,e.resolveDependenciesProperty=p,e.resolveDependencies=s,e}}var r=angular.module("agt.couchPotato",["ng"]);e.$inject=["$controllerProvider","$compileProvider","$provide","$filterProvider"],r.provider("$couchPotato",e)})();
 // Source: src/common.js
 var isDefined = angular.isDefined,
     isFunction = angular.isFunction,
@@ -833,10 +727,11 @@ function $DetourProvider(
     }
   });
   State.prototype.resetIncludes = function() {
-  // Speed up $detour.contains() as it's used a lot
-  this._includes = (this.parent)
-    ? angular.extend({}, this.parent.includes)
-    : {};
+    // Speed up $detour.contains() as it's used a lot
+    this._includes = (this.parent)
+      ? angular.extend({}, this.parent.includes)
+      : {};
+    this._includes[this.name] = true;
   };
 
   //*********************************************

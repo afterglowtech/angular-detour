@@ -2,8 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title ng-bind="$state.current.name + ' - angular-states'">angular-states using couchPotato</title>
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css"/>
+    <title ng-bind="$detour.current.name + ' - agt.detour/json-config'">agt.detour/json-config</title>
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
     <base href="/"/>
     <script src="/dist/dependencies/angular.js"></script>
     <script src="/dist/angular-detour.js"></script>
@@ -23,6 +23,9 @@ function findById(a, id) {
     <a class="brand" href ng-click="$detour.transitionTo('home')">agt.detour</a>
     <ul class="nav">
       <li ng-class="{ active: $detour.includes('contacts') }"><a href="/contacts">Contacts</a></li>
+<!--
+      <li ng-show="$detour.getState('about')" ng-class="{ active: $detour.includes('about') }"><a href="#/about">About</a></li>
+-->
       <li ng-class="{ active: $detour.includes('about') }"><a href="/about">About</a></li>
     </ul>
     <p class="navbar-text pull-right" ui-view="hint"></p>

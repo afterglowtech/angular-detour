@@ -3,52 +3,54 @@ define([], function () {
 
   var app = angular.module('app', ['agt.detour']);
 
-  app.config(['$locationProvider', '$provide', '$detourProvider',
-    function ($locationProvider, $provide, $detourProvider) {
+  app.config([ '$locationProvider', '$provide',
+    function($locationProvider, $provide) {
+
       //comment out the decorator function for html5mode
       //uncomment the decorator function for forced hash(bang) mode
-      $provide.decorator('$sniffer', function($delegate) {
-        $delegate.history = false;
-        return $delegate;
-      });
+      // $provide.decorator('$sniffer', function($delegate) {
+      //   $delegate.history = false;
+      //   return $delegate;
+      // });
       $locationProvider.html5Mode(true);
+    }
+  ]);
 
-      //demonstrates ui-router style syntax
-      //plus:
-      // otherwise function (on $detourProvider instead of $urlRouterProvider)
-      // aliases (instead of $urlRouterProvider when functions)
-      // dependencies (lazy-loading controllers)
-
-      $detourProvider.otherwise('/404');
-      $detourProvider.state('404', {
+  app.run([ '$rootScope', '$detour', '$stateParams',
+    function($rootScope,   $detour,   $stateParams) {
+      $detour.otherwise('/404');
+      $detour.state('404', {
         url: '/404',
-        templateUrl: 'partials/fourOhfour.html'
+        templateUrl: '/partials/fourOhfour.html'
       });
 
 
-      $detourProvider.state('home', {
+      $detour.state('home', {
         url: '/',
         aliases: {'': '^/'},
-        template: '<p class="lead">Welcome to the agt.detour sample<' + '/p><p>Use the menu above to navigate<' + '/p>' +
-          '<p>Look at <a href="#/c?id=1">Alice<' + '/a> or <a href="#/user/42">Bob<' + '/a> to see a URL with a ' +
-          'redirect in action.<' + '/p><p>Just don\'t <a href="#/getLost">get lost<' + '/a>!<' + '/p>'
+        templateUrl: '/partials/home.html',
+        controller: 'homeController',
+        dependencies: ['controllers/homeController']
       });
 
-      $detourProvider.state('contacts', {
+      var contacts = $detour.setState({
+        name: 'contacts',
         url: '/contacts',
         abstract: true,
-        templateUrl: 'partials/contacts.html',
+        templateUrl: '/partials/contacts.html',
         controller: 'contactsController',
         dependencies: ['controllers/contactsController']
       });
 
-      $detourProvider.state('contacts.list', {
+      contacts.setChild({
+        localName: 'list',
         url: '',
-        templateUrl: 'partials/contacts.list.html'
+        templateUrl: '/partials/contacts.list.html'
       });
 
-      $detourProvider.state('detail', {
-        parent: 'contacts',
+      var detail = contacts.setChild({
+        localName: 'detail',
+        // parent: 'contacts',
         url: '/{contactId}',
         aliases: {'/c?id': '/:id', '/user/{id}': '/:id'},
         resolve: {
@@ -61,7 +63,7 @@ define([], function () {
         dependencies: ['controllers/contactsDetailController'],
         views: {
           '': {
-            templateUrl: 'partials/contacts.detail.html',
+            templateUrl: '/partials/contacts.detail.html',
             controller: 'contactsDetailController'
           },
           'hint@': {
@@ -80,13 +82,14 @@ define([], function () {
         }
       });
 
-      $detourProvider.state('item', {
-        parent: 'contacts.detail',
+      var detailItem = detail.setChild({
+        localName: 'item',
+        // parent: 'contacts.detail',
         url: '/item/:itemId',
         dependencies: ['controllers/contactsDetailItemController'],
         views: {
           '': {
-            templateUrl: 'partials/contacts.detail.item.html',
+            templateUrl: '/partials/contacts.detail.item.html',
             controller: 'contactsDetailItemController'
           },
           'hint@': {
@@ -95,16 +98,19 @@ define([], function () {
         }
       });
 
-      $detourProvider.state('contacts.detail.item.edit', {
+      detailItem.setChild({
+        localName: 'edit',
         dependencies: ['controllers/contactsDetailItemEditController'],
         views: {
           '@contacts.detail': {
-            templateUrl: 'partials/contacts.detail.item.edit.html',
+            templateUrl: '/partials/contacts.detail.item.edit.html',
             controller: 'contactsDetailItemEditController'
           }
         }
       });
-      $detourProvider.state('about', {
+
+      $detour.setState({
+        name: 'about',
         url: '/about',
         templateProvider:
           [        '$timeout',
@@ -113,12 +119,8 @@ define([], function () {
           }]
       });
 
-      $detourProvider.initialize();
-    }
-  ]);
+      $detour.initialize();
 
-  app.run([ '$rootScope', '$detour', '$stateParams',
-    function($rootScope,   $detour,   $stateParams) {
       //"cheating" so that detour is available in requirejs
       //define modules -- we want run-time registration of components
       //to take place within those modules because it allows

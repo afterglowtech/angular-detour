@@ -31,7 +31,7 @@ module.exports = function(grunt) {
     banner:
       '/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - <%= grunt.template.today("yyyy-mm-dd") %>\n' +
       '<%= pkg.homepage ? " * " + pkg.homepage + "\\n" : "" %>' +
-      ' * Copyright (c) <%= grunt.template.today(\'yyyy\') %> <%= pkg.author %>;\n' +
+      ' * Copyright (c) <%= grunt.template.today(\'yyyy\') %> <%= pkg.author.name %>;\n' +
       ' *    Based on and uses software code found at https://github.com/angular-ui/ui-router which is \n' +
       ' *    Copyright (c) 2013, Karsten Sperling\n' +
       ' * Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %>\n */\n',
@@ -65,7 +65,7 @@ module.exports = function(grunt) {
           }
         },
         src: [
-          'lib/angular-couchPotato/angular-CouchPotato.js',
+          'lib/angular-couchPotato/angular-CouchPotato.min.js',
           'src/common.js',
           'src/common.js',
           'src/templateFactory.js',

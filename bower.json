@@ -1,6 +1,6 @@
 {
   "name": "angular-detour",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": [
     "dist/angular-detour.min.js"
   ],
@@ -10,8 +10,7 @@
     "url": "git://github.com/afterglowtech/angular-detour.git"
   },
   "ignore": [
-    "runtime-configuration-sample",
-    "ui-router-compatibility-sample",
+    "samples",
     "src",
     "*.js",
     "*.jshintrc",
@@ -21,7 +20,7 @@
   "dependencies": {
   },
   "devDependencies": {
-    "angular-couchPotato" : "afterglowtech/angular-couchPotato",
+    "angular-couchPotato" : "afterglowtech/angular-couchPotato#0.0.4",
     "angular": "johannestroeger/bower-angular-unstable",
     "requirejs": "~2.1.5"
   }

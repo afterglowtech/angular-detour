@@ -286,10 +286,11 @@ function $DetourProvider(
     }
   });
   State.prototype.resetIncludes = function() {
-  // Speed up $detour.contains() as it's used a lot
-  this._includes = (this.parent)
-    ? angular.extend({}, this.parent.includes)
-    : {};
+    // Speed up $detour.contains() as it's used a lot
+    this._includes = (this.parent)
+      ? angular.extend({}, this.parent.includes)
+      : {};
+    this._includes[this.name] = true;
   };
 
   //*********************************************
