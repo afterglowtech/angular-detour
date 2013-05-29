@@ -38,10 +38,11 @@ define(['detourService'], function (detour) {
       }];
 
       $scope.goToRandom = function () {
+        /*jshint eqeqeq:false */
         var contacts = $scope.contacts, id;
         do {
           id = contacts[Math.floor(contacts.length * Math.random())].id;
-        } while (id === $detour.params.contactId);
+        } while (id == $detour.params.contactId);
         $detour.transitionTo('contacts.detail', { contactId: id });
       };
     }]
