@@ -1,0 +1,16 @@
+getRoute:
+
+updates:
+      if there is a non-null, non-undefined serial number then updates will be included
+
+      updates include:
+            all non-lazy routes that have a serial higher than the one in the summary
+            deletes of any routes in the summary which no longer exist
+            all lazy routes that appear in the summary and that have a serial higher than the one in the summary
+
+the route itself:
+      return the route
+
+      for ancestors, return the definitions *if*
+            a) they are lazy and not in the summary or
+            b) they have a serial higher than the one in the summary

@@ -8,20 +8,6 @@ function $DetourProvider(
 ) {
   var that = this;
 
-
-
-  //*********************************************
-  //*********************************************
-  // State
-  //*********************************************
-  //*********************************************
-  //TODO: how/if to use this?
-  // function StateUrl() {
-  //   this.format = null;
-  //   this.exec = null;
-  //   this.concat = null;
-  // }
-
   function State() {
     this._children = {};
   }
@@ -680,7 +666,7 @@ function $DetourProvider(
       //own children
       this.children[child].initialize(false);
     }
-
+    this.needsInit = false;
   };
 
   StatesTree.prototype.tryHandle = function($injector, $location, doFallback) {
@@ -886,23 +872,24 @@ function $DetourProvider(
   }
   this.mergeJson = mergeJson;
 
-  this.lazyLoader = null;
+  this.lazy = false;
 
   //***************************************
   //service definition
   //***************************************
-  function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato) {
+  function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato, $routeLoader) {
 
     var TransitionSuperseded = $q.reject(new Error('transition superseded'));
     var TransitionPrevented = $q.reject(new Error('transition prevented'));
 
-    var lazyLoader = that.lazyLoader;
     var $detour = {
       params: {},
       current: statesTree.self,
       $current: statesTree,
       transition: null
     };
+
+    var lazy = that.lazy;
 
     $detour.registerValue = $couchPotato.registerValue;
     $detour.registerFactory = $couchPotato.registerFactory;
@@ -1192,8 +1179,8 @@ function $DetourProvider(
 //***************************************
 
     // TODO: Optimize groups of rules with non-empty prefix into some sort of decision tree
-    function update(secondTry) {
-      var doFallback = !lazyLoader || secondTry;
+    function update(event, next, current, secondTry) {
+      var doFallback = !lazy || secondTry;
 
       var handled = statesTree.tryHandle($injector, $location, doFallback);
       if (handled) {
@@ -1202,18 +1189,24 @@ function $DetourProvider(
         }
       }
 
-      if (!handled && !secondTry && lazyLoader) {
-        getRoute($location, lazyLoader).then(function() {
-          update(true);
+      if (!handled && !secondTry && lazy) {
+        getRoute($location).then(function() {
+          update(event, next, current, true);
         });
       }
     }
 
     function getRoute($location) {
-      var json = lazyLoader.getRoute($location, statesTree.jsonSummary);
-      if (json) {
-        this.mergeJson(json);
-      }
+      var deferred = $q.defer();
+
+      $routeLoader.getRoute($location, statesTree.jsonSummary).then(
+        function(json) {
+          statesTree.mergeJson(json);
+          deferred.resolve();
+        }
+      );
+
+      return deferred.promise;
     }
 
     $rootScope.$on('$locationChangeSuccess', update);
@@ -1225,7 +1218,7 @@ function $DetourProvider(
 
     return $detour;
   }
-  $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato'];
+  $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato', '$routeLoader'];
   this.$get = $get;
 
 }

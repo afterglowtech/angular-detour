@@ -438,6 +438,145 @@ function $UrlMatcherFactory() {
 // Register as a provider so it's available to other providers
 angular.module('agt.detour').provider('$urlMatcherFactory', $UrlMatcherFactory);
 
+// Source: src/routeLoader.js
+// var   matchSvc = '$match'
+//       , abstractVar = 'abstract'
+//       , detourSvc = '$detour'
+// ;
+
+function $RouteLoaderProvider(
+  // $urlMatcherFactory
+) {
+  var that = this;
+
+
+  //***************************************
+  //service definition
+  //***************************************
+  function $get(
+    $q
+    // $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato
+  ) {
+
+    var $routeLoader = {
+    };
+
+    $routeLoader.getRoute = function() {
+      var deferred = $q.defer();
+      deferred.resolve(theJson);
+      return deferred.promise;
+    };
+
+    var theJson = {
+      f: '/404',
+      t: [
+        {
+          n: '404', d: {
+            u: '/404',
+            t: 'partials/fourOhfour.html'
+          }
+        },
+        {
+          name: 'home', definition: {
+            url: '/',
+            aliases: {'': '^/'},
+            templateUrl: '/partials/home.html',
+            controller: 'homeController',
+            dependencies: ['lazy/controllers/homeController']
+          }
+        },
+        {
+          name: 'contacts', definition: {
+            url: '/contacts',
+            abstract: true,
+            templateUrl: '/partials/contacts.html',
+            controller: 'contactsController',
+            dependencies: ['lazy/controllers/contactsController']
+          },
+          children: [
+            {
+              name: 'list', definition: {
+                url: '',
+                templateUrl: '/partials/contacts.list.html'
+              }
+            },
+            {
+              name: 'detail', definition: {
+                url: '/{contactId}',
+                aliases: {'/c?id': '/:id', '/user/{id}': '/:id'},
+                resolveServices: {
+                  something: 'getContactIdFromParams'
+                },
+                dependencies: ['lazy/controllers/contactsDetailController', 'lazy/services/getContactIdFromParams', 'lazy/services/getContactIdHtml'],
+                views: {
+                  '': {
+                    templateUrl: '/partials/contacts.detail.html',
+                    controller: 'contactsDetailController'
+                  },
+                  'hint@': {
+                    template: 'This is contacts.detail populating the view "hint@"'
+                  },
+                  'menu': {
+                    templateService: 'getContactIdHtml'
+                  }
+                }
+              },
+              children: [
+                {
+                  name: 'item', definition: {
+                    url: '/item/:itemId',
+                    dependencies: ['lazy/controllers/contactsDetailItemController'],
+                    views: {
+                      '': {
+                        templateUrl: '/partials/contacts.detail.item.html',
+                        controller: 'contactsDetailItemController'
+                      },
+                      'hint@': {
+                        template: 'Overriding the view "hint@"'
+                      }
+                    }
+                  },
+                  children: [
+                    {
+                      name: 'edit', definition: {
+                        dependencies: ['lazy/controllers/contactsDetailItemEditController'],
+                        views: {
+                          '@contacts.detail': {
+                            templateUrl: '/partials/contacts.detail.item.edit.html',
+                            controller: 'contactsDetailItemEditController'
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          name: 'about', definition: {
+            url: '/about',
+            dependencies: ['lazy/services/getHelloWorld'],
+            i: 'getHelloWorld'
+          }
+        }
+      ]
+    };
+
+
+    return $routeLoader;
+  }
+  $get.$inject = ['$q'];
+  // $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato'];
+  this.$get = $get;
+
+}
+// $LazyLoaderProvider.$inject = ['$urlMatcherFactoryProvider'];
+
+angular.module('agt.detour')
+  .provider('$routeLoader', $RouteLoaderProvider);
+
 // Source: src/detour.js
 var   matchSvc = '$match'
       , abstractVar = 'abstract'
@@ -448,20 +587,6 @@ function $DetourProvider(
   $urlMatcherFactory
 ) {
   var that = this;
-
-
-
-  //*********************************************
-  //*********************************************
-  // State
-  //*********************************************
-  //*********************************************
-  //TODO: how/if to use this?
-  // function StateUrl() {
-  //   this.format = null;
-  //   this.exec = null;
-  //   this.concat = null;
-  // }
 
   function State() {
     this._children = {};
@@ -1121,7 +1246,7 @@ function $DetourProvider(
       //own children
       this.children[child].initialize(false);
     }
-
+    this.needsInit = false;
   };
 
   StatesTree.prototype.tryHandle = function($injector, $location, doFallback) {
@@ -1327,23 +1452,24 @@ function $DetourProvider(
   }
   this.mergeJson = mergeJson;
 
-  this.lazyLoader = null;
+  this.lazy = false;
 
   //***************************************
   //service definition
   //***************************************
-  function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato) {
+  function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato, $routeLoader) {
 
     var TransitionSuperseded = $q.reject(new Error('transition superseded'));
     var TransitionPrevented = $q.reject(new Error('transition prevented'));
 
-    var lazyLoader = that.lazyLoader;
     var $detour = {
       params: {},
       current: statesTree.self,
       $current: statesTree,
       transition: null
     };
+
+    var lazy = that.lazy;
 
     $detour.registerValue = $couchPotato.registerValue;
     $detour.registerFactory = $couchPotato.registerFactory;
@@ -1633,8 +1759,8 @@ function $DetourProvider(
 //***************************************
 
     // TODO: Optimize groups of rules with non-empty prefix into some sort of decision tree
-    function update(secondTry) {
-      var doFallback = !lazyLoader || secondTry;
+    function update(event, next, current, secondTry) {
+      var doFallback = !lazy || secondTry;
 
       var handled = statesTree.tryHandle($injector, $location, doFallback);
       if (handled) {
@@ -1643,18 +1769,24 @@ function $DetourProvider(
         }
       }
 
-      if (!handled && !secondTry && lazyLoader) {
-        getRoute($location, lazyLoader).then(function() {
-          update(true);
+      if (!handled && !secondTry && lazy) {
+        getRoute($location).then(function() {
+          update(event, next, current, true);
         });
       }
     }
 
     function getRoute($location) {
-      var json = lazyLoader.getRoute($location, statesTree.jsonSummary);
-      if (json) {
-        this.mergeJson(json);
-      }
+      var deferred = $q.defer();
+
+      $routeLoader.getRoute($location, statesTree.jsonSummary).then(
+        function(json) {
+          statesTree.mergeJson(json);
+          deferred.resolve();
+        }
+      );
+
+      return deferred.promise;
     }
 
     $rootScope.$on('$locationChangeSuccess', update);
@@ -1666,7 +1798,7 @@ function $DetourProvider(
 
     return $detour;
   }
-  $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato'];
+  $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato', '$routeLoader'];
   this.$get = $get;
 
 }

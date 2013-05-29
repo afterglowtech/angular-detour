@@ -67,9 +67,9 @@ module.exports = function(grunt) {
         src: [
           'lib/angular-couchPotato/angular-CouchPotato.min.js',
           'src/common.js',
-          'src/common.js',
           'src/templateFactory.js',
           'src/urlMatcherFactory.js',
+          'src/routeLoader.js',
           'src/detour.js',
           'src/viewDirective.js'
         ],
