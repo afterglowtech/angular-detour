@@ -197,6 +197,7 @@ function $TemplateFactory(  $http,   $templateCache,   $injector) {
       isDefined(config.template) ? this.fromString(config.template, params) :
       isDefined(config.templateUrl) ? this.fromUrl(config.templateUrl, params) :
       isDefined(config.templateProvider) ? this.fromProvider(config.templateProvider, params, locals) :
+      isDefined(config.templateService) ? this.fromService(config.templateService, params, locals) :
       null
     );
   };
@@ -241,7 +242,7 @@ function $TemplateFactory(  $http,   $templateCache,   $injector) {
   /**
    * Creates a template by invoking an injectable provider function.
    * @function
-   * @name $templateFactory#fromUrl
+   * @name $templateFactory#fromProvider
    * @methodOf $templateFactory
    * @param {Function} provider Function to invoke via `$injector.invoke`
    * @param {Object} params Parameters for the template.
@@ -251,6 +252,21 @@ function $TemplateFactory(  $http,   $templateCache,   $injector) {
   this.fromProvider = function (provider, params, locals) {
     return $injector.invoke(provider, null, locals || { params: params });
   };
+
+  /**
+   * Creates a template by invoking a service.
+   * @function
+   * @name $templateFactory#fromService
+   * @methodOf $templateFactory
+   * @param {Function} serviceName Service to invoke via `$injector.invoke`
+   * @param {Object} params Parameters for the template.
+   * @param {Object} [locals] Locals to pass to `invoke`. Defaults to `{ params: params }`.
+   * @return {string|Promise.<string>} The template html as a string, or a promise for that string.
+   */
+  this.fromService = function (serviceName, params, locals) {
+    return $injector.invoke([serviceName, function(service) { return service.getTemplate(params, locals); }]);
+  };
+
 }
 $TemplateFactory.$inject = ['$http', '$templateCache', '$injector'];
 
@@ -1144,6 +1160,83 @@ function $DetourProvider(
     }
   };
 
+  //*********************************************
+  // JSON support
+  //*********************************************
+  State.prototype.getIntJson = function(object, longPropertyName, shortPropertyName) {
+    return object[shortPropertyName]
+      ? parseInt(object[shortPropertyName], 10)
+      : object[longPropertyName]
+        ? parseInt(object[longPropertyName], 10)
+        : null;
+  };
+
+  State.prototype.getObjJson = function(object, longPropertyName, shortPropertyName) {
+    return object[shortPropertyName]
+      ? object[shortPropertyName]
+      : object[longPropertyName]
+        ? object[longPropertyName]
+        : null;
+  };
+
+  State.prototype.expandJson = function(object, longPropertyName, shortPropertyName) {
+    if (object[shortPropertyName]) {
+      object[longPropertyName] = object[shortPropertyName];
+      delete object[shortPropertyName];
+    }
+  };
+
+  State.prototype.mergeChild = function(childJson) {
+    //the name of the child we're working with
+    var name = this.getObjJson(childJson, 'name', 'n');
+    var del = this.getObjJson(childJson, 'delete', 'x');
+    if (del) {
+      this.removeChild(name);
+    }
+    else
+    {
+      var definition = this.getObjJson(childJson, 'definition', 'd');
+      if (definition) {
+        //a definition is specified -- update child
+        definition.localName = name;
+        this.expandJson(definition, 'url', 'u');
+        this.expandJson(definition, 'dependencies', 'd');
+        this.expandJson(definition, 'resolveAssignmentFuncs', 'r');
+        this.expandJson(definition, 'templateService', 'i');
+        this.expandJson(definition, 'aliases', 's');
+        this.expandJson(definition, 'controller', 'c');
+        this.expandJson(definition, 'templateUrl', 't');
+        this.expandJson(definition, 'template', 'l');
+        this.expandJson(definition, 'data', 'a');
+        this.expandJson(definition, 'abstract', 'b');
+        this.expandJson(definition, 'views', 'v');
+        if (childJson.views) {
+          for (var viewName in childJson.views) {
+            var view = childJson.views[viewName];
+            this.expandJson(view, 'url', 'u');
+            this.expandJson(view, 'resolveAssignmentFuncs', 'r');
+            this.expandJson(view, 'templateService', 'i');
+            this.expandJson(view, 'controller', 'c');
+            this.expandJson(view, 'templateUrl', 't');
+            this.expandJson(view, 'template', 'l');
+            this.expandJson(view, 'data', 'a');
+          }
+        }
+
+        this.updateChild(definition);
+      }
+
+      var children = this.getObjJson(childJson, 'children', 'c');
+      if (children) {
+        var thisChild = this.getChild(name);
+        for (var i = 0; i < children.length; i++) {
+          thisChild.mergeChild(children[i]);
+        }
+      }
+    }
+
+    return true;
+  };
 
 
   //*********************************************
@@ -1153,6 +1246,7 @@ function $DetourProvider(
   //*********************************************
   function StatesTree() {
     this.locals = { globals: { $stateParams: {} } };
+    this._serial = 0;
     this.resetAll();
   }
 
@@ -1188,7 +1282,12 @@ function $DetourProvider(
     set: function(val) {
       if (isString(val)) {
         var redirect = val;
-        this._fallback = function () { return redirect; };
+        if (redirect) {
+          this._fallback = function () { return redirect; };
+        }
+        else {
+          this._fallback = null;
+        }
       }
       else if (!isFunction(rule)) {
         throw new Error('\'rule\' must be a function');
@@ -1229,6 +1328,40 @@ function $DetourProvider(
   Object.defineProperty(StatesTree.prototype, 'navigable', {
     get: function() { return null; }
   });
+
+  Object.defineProperty(StatesTree.prototype, 'serial', {
+    get: function() { return this._serial; }
+  });
+
+  StatesTree.prototype.mergeJson = function(json) {
+    var serial = this.getIntJson(json, 'serial', 's');
+
+    if (serial && serial <= this._serial) {
+      //this update is specifically old
+      //if serial had been omitted we'd assume that it's not being used
+      return false;
+    }
+    else {
+      var tree = this.getObjJson(json, 'tree', 't');
+
+      if (tree) {
+        for (var i = 0; i < tree.length; i++) {
+          this.mergeChild(tree[i]);
+        }
+      }
+
+      var fallback = this.getObjJson(json, 'fallback', 'f');
+      if (fallback) {
+        this.fallback = fallback;
+      }
+
+      this._serial = serial;
+
+      this.initialize();
+
+      return true;
+    }
+  };
 
 
 //***************************************
@@ -1313,6 +1446,10 @@ function $DetourProvider(
   }
   this.getState = getState;
 
+  function mergeJson(json) {
+    return statesTree.mergeJson(json);
+  }
+  this.mergeJson = mergeJson;
 
   //***************************************
   //service definition
@@ -1343,6 +1480,8 @@ function $DetourProvider(
     $detour.updateState = updateState;
     $detour.getState = getState;
     $detour.removeState = removeState;
+
+    $detour.mergeJson = mergeJson;
 
     //***************************************
     //transitionTo
@@ -1403,6 +1542,7 @@ function $DetourProvider(
         resolved = resolveState(state, toParams, state===to, resolved, locals);
       }
 
+
       // Once everything is resolved, we are ready to perform the actual transition
       // and return a promise for the new state. We also keep track of what the
       // current promise is, so that we can detect overlapping transitions and
@@ -1460,6 +1600,7 @@ function $DetourProvider(
       });
 
       return transition;
+
     }
     $detour.transitionTo = transitionTo;
 
@@ -1478,96 +1619,110 @@ function $DetourProvider(
     };
 
     function resolveState(state, params, paramsAreFiltered, inherited, dst) {
-      // We need to track all the promises generated during the resolution process.
-      // The first of these is for the fully resolved parent locals.
-      var promises = [inherited];
-
-      // Make a restricted $stateParams with only the parameters that apply to this state if
-      // necessary. In addition to being available to the controller and onEnter/onExit callbacks,
-      // we also need $stateParams to be available for any $injector calls we make during the
-      // dependency resolution process.
-      var $stateParams;
-      if (paramsAreFiltered) {
-        $stateParams = params;
-      }
-      else {
-        $stateParams = {};
-        angular.forEach(state.preparedParams, function (name) {
-          $stateParams[name] = params[name];
-        });
-      }
-      var locals = { $stateParams: $stateParams };
-
-      // Resolves the values from an individual 'resolve' dependency spec
-      function resolve(deps, dst) {
-        angular.forEach(deps, function (value, key) {
-          promises.push($q
-            .when(angular.isString(value) ?
-                $injector.get(value) :
-                $injector.invoke(value, state.self, locals))
-            .then(function (result) {
-              dst[key] = result;
-            }));
-        });
-        if (state.dependencies) {
-          promises.push(
-            $q.when(
-              $injector.invoke(
-                $couchPotato.resolveDependencies(state.dependencies), state.self, locals
-              )
+      var dependencies = [];
+      if (state.dependencies) {
+        dependencies.push(
+          $q.when(
+            $injector.invoke(
+              $couchPotato.resolveDependencies(state.dependencies)
             )
-            .then(function(result) {
-              delete state.dependencies;
-            })
-          );
-        }
+          )
+        );
       }
 
-      // Resolve 'global' dependencies for the state, i.e. those not specific to a view.
-      // We're also including $stateParams in this; that we're the parameters are restricted
-      // to the set that should be visible to the state, and are independent of when we update
-      // the global $detour and $stateParams values.
-      var globals = dst.globals = { $stateParams: $stateParams };
-      resolve(state.resolve, globals);
+      return $q.all(dependencies).then( function() {
 
+        // We need to track all the promises generated during the resolution process.
+        // The first of these is for the fully resolved parent locals.
+        var promises = [inherited];
 
-      globals.$$state = state; // Provide access to the state itself for internal use
-
-      // Resolve template and dependencies for all views.
-      angular.forEach(state.preparedViews, function (view, name) {
-        // References to the controller (only instantiated at link time)
-        var $view = dst[name] = {
-          $$controller: view.controller
-        };
-
-        // Template
-        promises.push($q
-          .when($templateFactory.fromConfig(view, $stateParams, locals) || '')
-          .then(function (result) {
-            $view.$template = result;
-          }));
-
-        // View-local dependencies. If we've reused the state definition as the default
-        // view definition in .state(), we can end up with state.resolve === view.resolve.
-        // Avoid resolving everything twice in that case.
-        if (view.resolve !== state.resolve) {
-          resolve(view.resolve, $view);
+        // Make a restricted $stateParams with only the parameters that apply to this state if
+        // necessary. In addition to being available to the controller and onEnter/onExit callbacks,
+        // we also need $stateParams to be available for any $injector calls we make during the
+        // dependency resolution process.
+        var $stateParams;
+        if (paramsAreFiltered) {
+          $stateParams = params;
         }
-      });
+        else {
+          $stateParams = {};
+          angular.forEach(state.preparedParams, function (name) {
+            $stateParams[name] = params[name];
+          });
+        }
+        var locals = { $stateParams: $stateParams };
 
-      // Once we've resolved all the dependencies for this state, merge
-      // in any inherited dependencies, and merge common state dependencies
-      // into the dependency set for each view. Finally return a promise
-      // for the fully popuplated state dependencies.
-      return $q.all(promises).then(function (values) {
-        merge(dst.globals, values[0].globals); // promises[0] === inherited
-        forEach(state.preparedViews, function (view, name) {
-          merge(dst[name], dst.globals);
+        // Resolves the values from an individual 'resolve' dependency spec
+        function resolve(deps, dst) {
+          angular.forEach(deps, function (value, key) {
+            promises.push($q
+              .when(angular.isString(value) ?
+                  $injector.get(value) :
+                  $injector.invoke(value, state.self, locals))
+              .then(function (result) {
+                dst[key] = result;
+              }));
+          });
+        }
+
+        // Resolves the values from an individual 'resolveServices' dependency spec
+        function resolveServices(deps, dst) {
+          angular.forEach(deps, function (value, key) {
+            promises.push($q
+              .when(
+                $injector.invoke([value, function(service) { return service.resolve($stateParams, locals); }])
+              )
+              .then(function (result) {
+                dst[key] = result;
+              }));
+          });
+        }
+
+        // Resolve 'global' dependencies for the state, i.e. those not specific to a view.
+        // We're also including $stateParams in this; that we're the parameters are restricted
+        // to the set that should be visible to the state, and are independent of when we update
+        // the global $detour and $stateParams values.
+        var globals = dst.globals = { $stateParams: $stateParams };
+        resolve(state.resolve, globals);
+        resolveServices(state.resolveServices, globals);
+        globals.$$state = state; // Provide access to the state itself for internal use
+
+
+        // Resolve template and dependencies for all views.
+        angular.forEach(state.preparedViews, function (view, name) {
+          // References to the controller (only instantiated at link time)
+          var $view = dst[name] = {
+            $$controller: view.controller
+          };
+
+          // Template
+          promises.push($q
+            .when($templateFactory.fromConfig(view, $stateParams, locals) || '')
+            .then(function (result) {
+              $view.$template = result;
+            }));
+
+          // View-local dependencies. If we've reused the state definition as the default
+          // view definition in .state(), we can end up with state.resolve === view.resolve.
+          // Avoid resolving everything twice in that case.
+          if (view.resolve !== state.resolve) {
+            resolve(view.resolve, $view);
+          }
         });
-        return dst;
+
+
+        // Once we've resolved all the dependencies for this state, merge
+        // in any inherited dependencies, and merge common state dependencies
+        // into the dependency set for each view. Finally return a promise
+        // for the fully popuplated state dependencies.
+        return $q.all(promises).then(function (values) {
+          merge(dst.globals, values[0].globals); // promises[0] === inherited
+          forEach(state.preparedViews, function (view, name) {
+            merge(dst[name], dst.globals);
+          });
+          return dst;
+        });
       });
-
-
     }
 
     function equalForKeys(a, b, keys) {

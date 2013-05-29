@@ -33,6 +33,7 @@ function $TemplateFactory(  $http,   $templateCache,   $injector) {
       isDefined(config.template) ? this.fromString(config.template, params) :
       isDefined(config.templateUrl) ? this.fromUrl(config.templateUrl, params) :
       isDefined(config.templateProvider) ? this.fromProvider(config.templateProvider, params, locals) :
+      isDefined(config.templateService) ? this.fromService(config.templateService, params, locals) :
       null
     );
   };
@@ -77,7 +78,7 @@ function $TemplateFactory(  $http,   $templateCache,   $injector) {
   /**
    * Creates a template by invoking an injectable provider function.
    * @function
-   * @name $templateFactory#fromUrl
+   * @name $templateFactory#fromProvider
    * @methodOf $templateFactory
    * @param {Function} provider Function to invoke via `$injector.invoke`
    * @param {Object} params Parameters for the template.
@@ -87,6 +88,21 @@ function $TemplateFactory(  $http,   $templateCache,   $injector) {
   this.fromProvider = function (provider, params, locals) {
     return $injector.invoke(provider, null, locals || { params: params });
   };
+
+  /**
+   * Creates a template by invoking a service.
+   * @function
+   * @name $templateFactory#fromService
+   * @methodOf $templateFactory
+   * @param {Function} serviceName Service to invoke via `$injector.invoke`
+   * @param {Object} params Parameters for the template.
+   * @param {Object} [locals] Locals to pass to `invoke`. Defaults to `{ params: params }`.
+   * @return {string|Promise.<string>} The template html as a string, or a promise for that string.
+   */
+  this.fromService = function (serviceName, params, locals) {
+    return $injector.invoke([serviceName, function(service) { return service.getTemplate(params, locals); }]);
+  };
+
 }
 $TemplateFactory.$inject = ['$http', '$templateCache', '$injector'];
 
