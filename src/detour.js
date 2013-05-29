@@ -70,9 +70,12 @@ function $DetourProvider(
     if (!angular.isString(localName) || localName.indexOf('@') >= 0) {
       throw new Error('Invalid local state name (' + localName + ')');
     }
-    if (this.parent && this.parent.getChild(localName)) {
-        throw new Error('State ' + parent.fullName  + ' already has child ' + localName);
-    }
+
+    // can't redefine if we throw this error here
+    //not really useful, anyway
+    // if (this.parent && this.parent.getChild(localName)) {
+    //     throw new Error('State ' + parent.fullName  + ' already has child ' + localName);
+    // }
   };
 
   //*********************************************
