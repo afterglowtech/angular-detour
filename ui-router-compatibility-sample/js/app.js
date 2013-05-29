@@ -2,8 +2,17 @@ define([], function () {
   'use strict';
 
   var app = angular.module('app', ['agt.detour']);
-  app.config(['$locationProvider', '$detourProvider',
-    function ($locationProvider, $detourProvider) {
+
+  app.config(['$locationProvider', '$provide', '$detourProvider',
+    function ($locationProvider, $provide, $detourProvider) {
+      //comment out the decorator function for html5mode
+      //uncomment the decorator function for forced hash(bang) mode
+      $provide.decorator('$sniffer', function($delegate) {
+        $delegate.history = false;
+        return $delegate;
+      });
+      $locationProvider.html5Mode(true);
+
       //demonstrates ui-router style syntax
       //plus:
       // otherwise function (on $detourProvider instead of $urlRouterProvider)

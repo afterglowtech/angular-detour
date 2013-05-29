@@ -3,29 +3,41 @@ define([], function () {
 
   var app = angular.module('app', ['agt.detour']);
 
+  app.config([ '$locationProvider', '$provide',
+    function($locationProvider, $provide) {
+
+      //comment out the decorator function for html5mode
+      //uncomment the decorator function for forced hash(bang) mode
+      $provide.decorator('$sniffer', function($delegate) {
+        $delegate.history = false;
+        return $delegate;
+      });
+      $locationProvider.html5Mode(true);
+    }
+  ]);
 
   app.run([ '$rootScope', '$detour', '$stateParams',
     function($rootScope,   $detour,   $stateParams) {
       $detour.otherwise('/404');
       $detour.state('404', {
         url: '/404',
-        templateUrl: 'partials/fourOhfour.html'
+        templateUrl: '/partials/fourOhfour.html'
       });
 
 
       $detour.state('home', {
         url: '/',
         aliases: {'': '^/'},
-        templateUrl: 'partials/home.html',
+        templateUrl: '/partials/home.html',
         controller: 'homeController',
         dependencies: ['controllers/homeController']
       });
 
       var contacts = $detour.setState({
-        localName: 'contacts',
+        name: 'contacts',
         url: '/contacts',
         abstract: true,
-        templateUrl: 'partials/contacts.html',
+        templateUrl: '/partials/contacts.html',
         controller: 'contactsController',
         dependencies: ['controllers/contactsController']
       });
@@ -33,7 +45,7 @@ define([], function () {
       contacts.setChild({
         localName: 'list',
         url: '',
-        templateUrl: 'partials/contacts.list.html'
+        templateUrl: '/partials/contacts.list.html'
       });
 
       var detail = contacts.setChild({
@@ -51,7 +63,7 @@ define([], function () {
         dependencies: ['controllers/contactsDetailController'],
         views: {
           '': {
-            templateUrl: 'partials/contacts.detail.html',
+            templateUrl: '/partials/contacts.detail.html',
             controller: 'contactsDetailController'
           },
           'hint@': {
@@ -77,7 +89,7 @@ define([], function () {
         dependencies: ['controllers/contactsDetailItemController'],
         views: {
           '': {
-            templateUrl: 'partials/contacts.detail.item.html',
+            templateUrl: '/partials/contacts.detail.item.html',
             controller: 'contactsDetailItemController'
           },
           'hint@': {
@@ -91,7 +103,7 @@ define([], function () {
         dependencies: ['controllers/contactsDetailItemEditController'],
         views: {
           '@contacts.detail': {
-            templateUrl: 'partials/contacts.detail.item.edit.html',
+            templateUrl: '/partials/contacts.detail.item.edit.html',
             controller: 'contactsDetailItemEditController'
           }
         }

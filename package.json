@@ -19,6 +19,7 @@
   ],
   "dependencies": {},
   "devDependencies": {
+    "express": "~3.5.2",
     "grunt-cli": ">= 0.1.7",
     "grunt-bower": "~0.5.1",
     "grunt-bower-task": "~0.2.3",
