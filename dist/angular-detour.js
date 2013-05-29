@@ -817,7 +817,7 @@ function $DetourProvider(
   };
 
   State.prototype.resetHandlers = function() {
-    if (this.abstract || !this.preparedUrl) {
+    if (this['abstract'] || !this.preparedUrl) {
       this._handleUrl = null;
       return;
     }
@@ -1387,7 +1387,7 @@ function $DetourProvider(
       }
 
       to = statesTree.getState(to);
-      if (to.abstract) {
+      if (to['abstract']) {
         throw new Error('Cannot transition to abstract state \'' + to + '\'');
       }
       var toPath = to.path,
@@ -1411,13 +1411,7 @@ function $DetourProvider(
       }
 
       // Normalize/filter parameters before we pass them to event handlers etc.
-      var normalizedToParams = {};
-      forEach(to.preparedParams, function (name) {
-        /*jshint eqeqeq:false */
-        var value = toParams[name];
-        normalizedToParams[name] = (value != null) ? String(value) : null;
-      });
-      toParams = normalizedToParams;
+      toParams = normalize(to.preparedParams, toParams || {});
 
       // Broadcast start event and cancel the transition if requested
       if ($rootScope.$broadcast('$stateChangeStart', to.self, toParams, from.self, fromParams).defaultPrevented) {
@@ -1511,6 +1505,14 @@ function $DetourProvider(
       else {
         return false;
       }
+    };
+
+    $detour.href = function (stateOrName, params) {
+      var state = this.getState(stateOrName), nav = state.navigable;
+      if (!nav) {
+        throw new Error('State \'' + state + '\' is not navigable');
+      }
+      return nav.url.format(normalize(state.preparedParams, params || {}));
     };
 
     function resolveState(state, params, paramsAreFiltered, inherited, dst) {
@@ -1620,6 +1622,17 @@ function $DetourProvider(
       });
     }
 
+    function normalize(keys, values) {
+      /*jshint eqeqeq:false */
+      var normalized = {};
+
+      forEach(keys, function (name) {
+        var value = values[name];
+        normalized[name] = (value != null) ? String(value) : null;
+      });
+      return normalized;
+    }
+
     function equalForKeys(a, b, keys) {
       /*jshint eqeqeq:false */
       for (var i=0; i<keys.length; i++) {
@@ -1714,7 +1727,6 @@ angular.module('agt.detour')
   .provider('$detour', $DetourProvider);
 
 // Source: src/viewDirective.js
-
 function $ViewDirective(   $detour,   $compile,   $controller,   $injector,   $anchorScroll) {
   // Unfortunately there is no neat way to ask $injector if a service exists
   var $animator; try { $animator = $injector.get('$animator'); } catch (e) { /* do nothing */ }
@@ -1723,21 +1735,27 @@ function $ViewDirective(   $detour,   $compile,   $controller,   $injector,   $a
     restrict: 'ECA',
     terminal: true,
     link: function(scope, element, attr) {
+      var viewScope, viewLocals,
+          initialContent = element.contents(),
+          name = attr[directive.name] || attr.name || '',
+          onloadExp = attr.onload || '',
+          animate = isDefined($animator) && $animator(scope, attr);
+
       function updateView(doAnimate) {
         var locals = $detour.$current && $detour.$current.locals[name];
         if (locals === viewLocals) {
           return; // nothing to do
         }
 
-        // Destroy previous view scope and remove content (if any)
-        if (viewScope) {
-          if (animate && doAnimate) {
-            animate.leave(element.contents(), element);
-          }
-          else {
-            element.html('');
-          }
+        // Remove existing content
+        if (animate && doAnimate) {
+          animate.leave(element.contents(), element);
+        } else {
+          element.html('');
+        }
 
+        // Destroy previous view scope
+        if (viewScope) {
           viewScope.$destroy();
           viewScope = null;
         }
@@ -1772,13 +1790,15 @@ function $ViewDirective(   $detour,   $compile,   $controller,   $injector,   $a
         } else {
           viewLocals = null;
           view.state = null;
+
+          // Restore initial view
+          if (doAnimate) {
+            animate.enter(initialContent, element);
+          } else {
+            element.html(initialContent);
+          }
         }
       }
-
-      var viewScope, viewLocals,
-          name = attr[directive.name] || attr.name || '',
-          onloadExp = attr.onload || '',
-          animate = isDefined($animator) && $animator(scope, attr);
 
       // Find the details of the parent view directive (if any) and use it
       // to derive our own qualified view name, then hang our own details
@@ -1792,7 +1812,6 @@ function $ViewDirective(   $detour,   $compile,   $controller,   $injector,   $a
 
       scope.$on('$stateChangeSuccess', function() { updateView(true); });
       updateView(false);
-
     }
   };
   return directive;

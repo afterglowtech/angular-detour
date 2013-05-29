@@ -376,7 +376,7 @@ function $DetourProvider(
   };
 
   State.prototype.resetHandlers = function() {
-    if (this.abstract || !this.preparedUrl) {
+    if (this['abstract'] || !this.preparedUrl) {
       this._handleUrl = null;
       return;
     }
@@ -946,7 +946,7 @@ function $DetourProvider(
       }
 
       to = statesTree.getState(to);
-      if (to.abstract) {
+      if (to['abstract']) {
         throw new Error('Cannot transition to abstract state \'' + to + '\'');
       }
       var toPath = to.path,
@@ -970,13 +970,7 @@ function $DetourProvider(
       }
 
       // Normalize/filter parameters before we pass them to event handlers etc.
-      var normalizedToParams = {};
-      forEach(to.preparedParams, function (name) {
-        /*jshint eqeqeq:false */
-        var value = toParams[name];
-        normalizedToParams[name] = (value != null) ? String(value) : null;
-      });
-      toParams = normalizedToParams;
+      toParams = normalize(to.preparedParams, toParams || {});
 
       // Broadcast start event and cancel the transition if requested
       if ($rootScope.$broadcast('$stateChangeStart', to.self, toParams, from.self, fromParams).defaultPrevented) {
@@ -1070,6 +1064,14 @@ function $DetourProvider(
       else {
         return false;
       }
+    };
+
+    $detour.href = function (stateOrName, params) {
+      var state = this.getState(stateOrName), nav = state.navigable;
+      if (!nav) {
+        throw new Error('State \'' + state + '\' is not navigable');
+      }
+      return nav.url.format(normalize(state.preparedParams, params || {}));
     };
 
     function resolveState(state, params, paramsAreFiltered, inherited, dst) {
@@ -1177,6 +1179,17 @@ function $DetourProvider(
           return dst;
         });
       });
+    }
+
+    function normalize(keys, values) {
+      /*jshint eqeqeq:false */
+      var normalized = {};
+
+      forEach(keys, function (name) {
+        var value = values[name];
+        normalized[name] = (value != null) ? String(value) : null;
+      });
+      return normalized;
     }
 
     function equalForKeys(a, b, keys) {

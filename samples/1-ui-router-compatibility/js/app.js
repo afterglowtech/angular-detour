@@ -29,7 +29,7 @@ define([], function () {
       $detourProvider.state('home', {
         url: '/',
         aliases: {'': '^/'},
-        template: '<p class="lead">Welcome to the agt.detour runtiem config sample<' + '/p><p>Use the menu above to navigate<' + '/p>' +
+        template: '<p class="lead">Welcome to the agt.detour ui-router compatibility sample<' + '/p><p>Use the menu above to navigate<' + '/p>' +
           '<p>Look at <a href="#/c?id=1">Alice<' + '/a> or <a href="#/user/42">Bob<' + '/a> to see a URL with a ' +
           'redirect in action.<' + '/p><p>Just don\'t <a href="#/getLost">get lost<' + '/a>!<' + '/p>'
       });
