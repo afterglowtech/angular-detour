@@ -11,8 +11,10 @@ To run the sample:
 * clone the repository
 * npm install
 * grunt build
-* node sample-server.js
-* visit localhost:3006/ui-router-compatibility-sample and localhost:3006/runtime-configuration-sample and localhost:3006/json-config-sample
+* cd ui-router-compatibility-sample, runtime-configuration-sample or json-config-sample (each is a different sample)
+* node server.js
+* visit localhost:3006
+* the samples work in html5 mode and hashbang mode -- see js/app.js
 
 *key changes from ui-router*
 * StatesTree -- nodes implement the functionality of building states that ui-router contains in its states function
