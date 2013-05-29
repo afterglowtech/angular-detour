@@ -1,7 +1,10 @@
 # angular-detour
 
-* implements a StatesTree-version of ui-router designed to be editable at runtime.
-* in the future will allow runtime editing and lazy-loading/editing of definitions based on a server through AJAX/JSON
+* implements a StatesTree-version of ui-router
+* allows runtime editing of configuration
+* support for merging json representations of routing definitions
+* allows templateProviders and resolve functions to be specified as named services
+* in the future, will support lazy-loading/updating definitions from a server through AJAX
 * derivation of [ui-router](https://github.com/angular-ui/ui-router)
 
 To run the sample:
@@ -9,7 +12,7 @@ To run the sample:
 * npm install
 * grunt build
 * node sample-server.js
-* visit localhost:3006/ui-router-compatibility-sample and localhost:3006/runtime-configuration-sample
+* visit localhost:3006/ui-router-compatibility-sample and localhost:3006/runtime-configuration-sample and localhost:3006/json-config-sample
 
 *key changes from ui-router*
 * StatesTree -- nodes implement the functionality of building states that ui-router contains in its states function
