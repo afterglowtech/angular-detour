@@ -1,7 +1,14 @@
+var   matchSvc = '$match'
+      , abstractVar = 'abstract'
+      , detourSvc = '$detour'
+;
+
 function $DetourProvider(
-  $urlMatcherFactory,
-  $locationProvider
+  $urlMatcherFactory
 ) {
+  var that = this;
+
+
 
   //*********************************************
   //*********************************************
@@ -16,20 +23,12 @@ function $DetourProvider(
   // }
 
   function State() {
-    //TODO: is this useful/necessary?
-
-    this._resolve = {};
     this._children = {};
-    this._includes = {};
-    this._locals = {};
   }
 
   //*********************************************
   // initialize
   //*********************************************
-  Object.defineProperty(State.prototype, 'needsInit', {
-    get: function() { return this._needsInit; }
-  });
   Object.defineProperty(State.prototype, 'self', {
     get: function() { return this; }
   });
@@ -52,7 +51,7 @@ function $DetourProvider(
       for (var child in this.children) {
         this.children[child].initialize(true);
       }
-      this._needsInit = false;
+      this.needsInit = false;
     }
   };
 
@@ -70,7 +69,7 @@ function $DetourProvider(
     set: function(val) {
       this.validateName(val);
       this._localName= val;
-      this._needsInit = true;
+      this.needsInit = true;
     }
   });
 
@@ -98,13 +97,6 @@ function $DetourProvider(
   });
 
   //*********************************************
-  // parent
-  //*********************************************
-  Object.defineProperty(State.prototype, 'parent', {
-    get: function() { return this._parent; }
-  });
-
-  //*********************************************
   // children
   //*********************************************
   Object.defineProperty(State.prototype, 'children', {
@@ -125,11 +117,8 @@ function $DetourProvider(
   //*********************************************
   State.prototype.resetPath = function() {
     // Keep a full path from the root down to this state as this is needed for state activation.
-    this._path = this.parent.path.concat(this); // exclude root from path
+    this.path = this.parent.path.concat(this); // exclude root from path
   };
-  Object.defineProperty(State.prototype, 'path', {
-    get: function() { return this._path; }
-  });
 
   //*********************************************
   // url
@@ -138,38 +127,28 @@ function $DetourProvider(
     get: function() { return this._url; },
     set: function(val) {
       this._url= val;
-      this._needsInit = true;
+      this.needsInit = true;
     }
-  });
-  Object.defineProperty(State.prototype, 'fullUrl', {
-    get: function() { return this._fullUrl; }
   });
   Object.defineProperty(State.prototype, 'aliases', {
     get: function() { return this._aliases; },
     set: function(val) {
       this._aliases= val;
-      this._needsInit = true;
+      this.needsInit = true;
     }
-  });
-  Object.defineProperty(State.prototype, 'preparedAliases', {
-    get: function() { return this._preparedAliases; },
-    set: function(val) { this._preparedAliases= val; }
-  });
-  Object.defineProperty(State.prototype, 'preparedUrl', {
-    get: function() { return this._preparedUrl; }
   });
   State.prototype.resetUrl = function() {
     /*jshint eqeqeq:false */
-    this._preparedUrl = null;
+    this.preparedUrl = null;
     if (angular.isString(this.url)) {
       if (this.url.charAt(0) === '^') {
-        this._preparedUrl = $urlMatcherFactory.compile(this.url.substring(1));
+        this.preparedUrl = $urlMatcherFactory.compile(this.url.substring(1));
       } else {
-        this._preparedUrl = (this.parent.navigable || this.root).preparedUrl.concat(this.url);
+        this.preparedUrl = (this.parent.navigable || this.root).preparedUrl.concat(this.url);
       }
-    } else if (isObject(this._url) &&
+    } else if (isObject(this.url) &&
         isFunction(this.url.exec) && isFunction(this.url.format) && isFunction(this.url.concat)) {
-          this._preparedUrl = this.url;
+          this.preparedUrl = this.url;
       /* use UrlMatcher (or compatible object) as is */
     } else if (this.url != null) {
       throw new Error('Invalid url ' + this.url + ' in state ' + this);
@@ -184,12 +163,12 @@ function $DetourProvider(
     get: function() { return this._params; },
     set: function(val) {
       this._params= val;
-      this._needsInit = true;
+      this.needsInit = true;
     }
   });
   State.prototype.resetParams = function() {
     // Derive parameters for this state and ensure they're a super-set of parent's parameters
-    this._preparedParams = null;
+    this.preparedParams = null;
 
     // Derive parameters for this state and ensure they're a super-set of parent's parameters
     var params = this.params;
@@ -202,12 +181,12 @@ function $DetourProvider(
           throw new Error('Both params and url specicified in state \'' + this + '\'');
         }
         else {
-          this._perparedParams = params;
+          this.perparedParams = params;
         }
       }
     }
     else {
-      this._preparedParams = this.preparedUrl ? this.preparedUrl.parameters() : this.parent.preparedParams;
+      this.preparedParams = this.preparedUrl ? this.preparedUrl.parameters() : this.parent.preparedParams;
     }
 
     var paramNames = {};
@@ -223,31 +202,22 @@ function $DetourProvider(
         paramNames[p] = false;
       });
 
-      var ownParams = this._ownParams = [];
+      var ownParams = this.ownParams = [];
       forEach(paramNames, function (own, p) {
         if (own) {
           ownParams.push(p);
         }
       });
     } else {
-      this._ownParams = this.preparedParams;
+      this.ownParams = this.preparedParams;
     }
   };
-  Object.defineProperty(State.prototype, 'preparedParams', {
-    get: function() { return this._preparedParams; }
-  });
-  Object.defineProperty(State.prototype, 'ownParams', {
-    get: function() { return this._ownParams; }
-  });
 
   //*********************************************
   // navigable
   //*********************************************
-  Object.defineProperty(State.prototype, 'navigable', {
-    get: function() { return this._navigable; }
-  });
   State.prototype.resetNavigable = function() {
-    this._navigable = (this.url)
+    this.navigable = (this.url)
       ? this
       : (this.parent)
         ? this.parent.navigable
@@ -255,42 +225,25 @@ function $DetourProvider(
   };
 
   //*********************************************
-  // resolve
-  //*********************************************
-  Object.defineProperty(State.prototype, 'resolve', {
-    get: function() { return this._resolve; },
-    set: function(val) {
-      this._resolve= val;
-    }
-  });
-
-  //*********************************************
   // abstract
   //*********************************************
-  Object.defineProperty(State.prototype, 'abstract', {
+  Object.defineProperty(State.prototype, abstractVar, {
     get: function() { return this._abstract; },
     set: function(val) {
       this._abstract= val;
-      this._needsInit = true;
+      this.needsInit = true;
     }
   });
 
   //*********************************************
   // includes
   //*********************************************
-  //TODO: is this right?
-  Object.defineProperty(State.prototype, 'includes', {
-    get: function() { return this._includes; },
-    set: function(val) {
-      this._includes= val;
-    }
-  });
   State.prototype.resetIncludes = function() {
     // Speed up $detour.contains() as it's used a lot
-    this._includes = (this.parent)
+    this.includes = (this.parent)
       ? angular.extend({}, this.parent.includes)
       : {};
-    this._includes[this.name] = true;
+    this.includes[this.name] = true;
   };
 
   //*********************************************
@@ -300,7 +253,7 @@ function $DetourProvider(
     get: function() { return this._views; },
     set: function(val) {
       this._views= val;
-      this._needsInit = true;
+      this.needsInit = true;
     }
   });
   State.prototype.resetViews = function() {
@@ -318,19 +271,12 @@ function $DetourProvider(
       }
       views[name] = view;
     });
-    this._preparedViews = views;
+    this.preparedViews = views;
   };
-  Object.defineProperty(State.prototype, 'preparedViews', {
-    get: function() { return this._preparedViews; }
-  });
 
   //*********************************************
   // handleUrl
   //*********************************************
-  Object.defineProperty(State.prototype, 'handleUrl', {
-    get: function() { return this._handleUrl; }
-  });
-
   State.prototype._buildRule = function(what, handler) {
     var rule, redirect;
     if (isString(what)) {
@@ -340,7 +286,7 @@ function $DetourProvider(
     if ($urlMatcherFactory.isMatcher(what)) {
       if (isString(handler)) {
         redirect = $urlMatcherFactory.compile(handler);
-        handler = ['$match', function ($match) { return redirect.format($match); }];
+        handler = [matchSvc, function ($match) { return redirect.format($match); }];
       }
       else if (!isFunction(handler) && !isArray(handler)) {
         throw new Error('invalid \'handler\' in when()');
@@ -354,7 +300,7 @@ function $DetourProvider(
     else if (what instanceof RegExp) {
       if (isString(handler)) {
         redirect = handler;
-        handler = ['$match', function ($match) { return interpolate(redirect, $match); }];
+        handler = [matchSvc, function ($match) { return interpolate(redirect, $match); }];
       }
       else if (!isFunction(handler) && !isArray(handler)) {
         throw new Error('invalid \'handler\' in when()');
@@ -376,20 +322,20 @@ function $DetourProvider(
   };
 
   State.prototype.resetHandlers = function() {
-    if (this['abstract'] || !this.preparedUrl) {
-      this._handleUrl = null;
+    if (this[abstractVar] || !this.preparedUrl) {
+      this.handleUrl = null;
       return;
     }
 
     var what = this.preparedUrl;
     var that = this;
-    var handler = ['$match', '$detour', function ($match, $detour) {
+    var handler = [matchSvc, detourSvc, function ($match, $detour) {
       $detour.transitionTo(that, $match, false);
     }];
 
-    this._handleUrl = this._buildRule(what, handler);
+    this.handleUrl = this._buildRule(what, handler);
 
-    this._preparedAliases = [];
+    this.preparedAliases = [];
     if (this.aliases) {
       angular.forEach(this.aliases, function(value, key) {
         value = value.charAt(0) === '^'
@@ -476,8 +422,8 @@ function $DetourProvider(
     }
 
     this.children[state.localName] = state;
-    state._parent = this;
-    this._needsInit = true;
+    state.parent = this;
+    this.needsInit = true;
     return state;
   };
 
@@ -505,7 +451,7 @@ function $DetourProvider(
   //*********************************************
   // prepareFlatDefinition
   //*********************************************
-  State.prototype.prepareFlatDefinitionAndGetParent = function(stateDef) {
+  State.prototype.prepFlatGetParent = function(stateDef) {
     var parent, localName;
     if (stateDef.parent) {
       parent = this.getState(stateDef.parent);
@@ -529,9 +475,9 @@ function $DetourProvider(
 
     stateDef.localName = localName;
 
-    delete stateDef['name'];
-    delete stateDef['fullName'];
-    delete stateDef['parent'];
+    delete stateDef.name;
+    delete stateDef.fullName;
+    delete stateDef.parent;
 
     return parent;
   };
@@ -544,7 +490,7 @@ function $DetourProvider(
   //parent (which must already exist) -- for compatibility
   //with ui-router or other non-oo definition style
   State.prototype.setState = function(stateDef, deep) {
-    var parent = this.prepareFlatDefinitionAndGetParent(stateDef);
+    var parent = this.prepFlatGetParent(stateDef);
 
     return parent.setChild(stateDef, deep);
   };
@@ -556,7 +502,7 @@ function $DetourProvider(
   //parent (which must already exist) -- for compatibility
   //with ui-router or other non-oo definition style
   State.prototype.updateState = function(stateDef) {
-    var parent = this.prepareFlatDefinitionAndGetParent(stateDef);
+    var parent = this.prepFlatGetParent(stateDef);
 
     return parent.updateChild(stateDef);
   };
@@ -655,7 +601,7 @@ function $DetourProvider(
         definition.localName = name;
         this.expandJson(definition, 'url', 'u');
         this.expandJson(definition, 'dependencies', 'd');
-        this.expandJson(definition, 'resolveAssignmentFuncs', 'r');
+        this.expandJson(definition, 'resolveByService', 'r');
         this.expandJson(definition, 'templateService', 'i');
         this.expandJson(definition, 'aliases', 's');
         this.expandJson(definition, 'controller', 'c');
@@ -668,7 +614,7 @@ function $DetourProvider(
           for (var viewName in childJson.views) {
             var view = childJson.views[viewName];
             this.expandJson(view, 'url', 'u');
-            this.expandJson(view, 'resolveAssignmentFuncs', 'r');
+            this.expandJson(view, 'resolveByService', 'r');
             this.expandJson(view, 'templateService', 'i');
             this.expandJson(view, 'controller', 'c');
             this.expandJson(view, 'templateUrl', 't');
@@ -692,6 +638,24 @@ function $DetourProvider(
     return true;
   };
 
+  Object.defineProperty(State.prototype, 'jsonSummary', {
+    get: function() {
+      var summary = {
+      };
+
+      if (Object.keys(this.children).length > 0) {
+        var children = {};
+        for (var childName in this.children) {
+          var child = this.children[childName];
+          children[child.name] = child.jsonSummary;
+        }
+        summary.c = children;
+      }
+
+      return summary;
+    }
+  });
+
 
   //*********************************************
   //*********************************************
@@ -700,7 +664,7 @@ function $DetourProvider(
   //*********************************************
   function StatesTree() {
     this.locals = { globals: { $stateParams: {} } };
-    this._serial = 0;
+    this.serial = 0;
     this.resetAll();
   }
 
@@ -719,10 +683,10 @@ function $DetourProvider(
 
   };
 
-  StatesTree.prototype.tryHandle = function($injector, $location) {
+  StatesTree.prototype.tryHandle = function($injector, $location, doFallback) {
     var that = this;
     var handled = State.prototype.tryHandle.call(that, $injector, $location);
-    if (!handled) {
+    if (!handled && doFallback) {
       if (this.fallback) {
         handled = this.fallback($injector, $location);
       }
@@ -780,17 +744,14 @@ function $DetourProvider(
     get: function() { return null; }
   });
   Object.defineProperty(StatesTree.prototype, 'navigable', {
-    get: function() { return null; }
-  });
-
-  Object.defineProperty(StatesTree.prototype, 'serial', {
-    get: function() { return this._serial; }
+    get: function() { return null; },
+    set: function(val) {}
   });
 
   StatesTree.prototype.mergeJson = function(json) {
     var serial = this.getIntJson(json, 'serial', 's');
 
-    if (serial && serial <= this._serial) {
+    if (serial && serial <= this.serial) {
       //this update is specifically old
       //if serial had been omitted we'd assume that it's not being used
       return false;
@@ -816,6 +777,26 @@ function $DetourProvider(
       return true;
     }
   };
+
+  Object.defineProperty(StatesTree.prototype, 'jsonSummary', {
+    get: function() {
+      var summary = {
+        s: this._serial,
+        f: this.fallback
+      };
+
+      var tree = {};
+      for (var childName in this.children) {
+        var child = this.children[childName];
+        tree[child.name] = child.jsonSummary;
+      }
+
+      summary.t = tree;
+
+      return summary;
+    }
+  });
+
 
 
 //***************************************
@@ -905,6 +886,8 @@ function $DetourProvider(
   }
   this.mergeJson = mergeJson;
 
+  this.lazyLoader = null;
+
   //***************************************
   //service definition
   //***************************************
@@ -913,6 +896,7 @@ function $DetourProvider(
     var TransitionSuperseded = $q.reject(new Error('transition superseded'));
     var TransitionPrevented = $q.reject(new Error('transition prevented'));
 
+    var lazyLoader = that.lazyLoader;
     var $detour = {
       params: {},
       current: statesTree.self,
@@ -1208,63 +1192,29 @@ function $DetourProvider(
 //***************************************
 
     // TODO: Optimize groups of rules with non-empty prefix into some sort of decision tree
-    function update() {
-      var handled = statesTree.tryHandle($injector, $location);
+    function update(secondTry) {
+      var doFallback = !lazyLoader || secondTry;
+
+      var handled = statesTree.tryHandle($injector, $location, doFallback);
       if (handled) {
         if (isString(handled)) {
           $location.replace().url(handled);
         }
       }
 
-      // if (!handled && lazy) {
-      //   //h
-      //   getRoute($location).then(
-      //     //it doesn't matter whether we found a route because update2
-      //     //will do the otherwise rule if nothing appropriate got loaded
-      //     function() {
-      //       update2();
-      //     }
-      //   );
-      // }
-      // else
-      // {
-      //   if (!handled && otherwise) {
-      //     handled = otherwise($injector, $location);
-      //     if (handled) {
-      //       if (isString(handled)) {
-      //         $location.replace().url(handled);
-      //       }
-      //     }
-      //   }
-      // }
-    }
-
-    function update2() {
-      var n=rules.length, i, handled;
-      for (i=0; i<n; i++) {
-        handled = rules[i]($injector, $location);
-        if (handled) {
-          if (isString(handled)) {
-            $location.replace().url(handled);
-          }
-          break;
-        }
-      }
-
-      if (!handled && otherwise) {
-        handled = otherwise($injector, $location);
-        if (handled) {
-          if (isString(handled)) {
-            $location.replace().url(handled);
-          }
-        }
+      if (!handled && !secondTry && lazyLoader) {
+        getRoute($location, lazyLoader).then(function() {
+          update(true);
+        });
       }
     }
 
     function getRoute($location) {
-      //TODO: this lazy loads a route
+      var json = lazyLoader.getRoute($location, statesTree.jsonSummary);
+      if (json) {
+        this.mergeJson(json);
+      }
     }
-    getRoute.$inject = ['$location'];
 
     $rootScope.$on('$locationChangeSuccess', update);
 
@@ -1279,8 +1229,8 @@ function $DetourProvider(
   this.$get = $get;
 
 }
-$DetourProvider.$inject = ['$urlMatcherFactoryProvider', '$locationProvider'];
+$DetourProvider.$inject = ['$urlMatcherFactoryProvider'];
 
 angular.module('agt.detour')
   .value('$stateParams', {})
-  .provider('$detour', $DetourProvider);
+  .provider(detourSvc, $DetourProvider);
