@@ -1,4 +1,4 @@
-/*! angular-detour - v0.0.4 - 2013-05-29
+/*! angular-detour - v0.0.4 - 2013-05-30
  * https://github.com/afterglowtech/angular-detour
  * Copyright (c) 2013 Stu Salsbury;
  *    Based on and uses software code found at https://github.com/angular-ui/ui-router which is 
@@ -449,125 +449,70 @@ function $RouteLoaderProvider(
 ) {
   var that = this;
 
+  this.getRouteUrl = null;
+  this.jsonSummaryParameter = 's';
+  this.pathParameter = 'r';
+  this.getUpdatesUrl = null;
+
 
   //***************************************
   //service definition
   //***************************************
   function $get(
-    $q
+    $q, $location, $http
     // $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato
   ) {
 
-    var $routeLoader = {
-    };
+    function RouteLoader() {
+      this._getRouteUrl = that.getRouteUrl;
+      this._jsonSummaryParameter = that.jsonSummaryParameter;
+      this._pathParameter = that.pathParameter;
+      this._getUpdatesUrl = that.getUpdatesUrl;
 
-    $routeLoader.getRoute = function() {
-      var deferred = $q.defer();
-      deferred.resolve(theJson);
-      return deferred.promise;
-    };
+      this.getRoute = function(jsonSummary) {
+        var path = $location.path();
 
-    var theJson = {
-      f: '/404',
-      t: [
-        {
-          n: '404', d: {
-            u: '/404',
-            t: 'partials/fourOhfour.html'
-          }
-        },
-        {
-          name: 'home', definition: {
-            url: '/',
-            aliases: {'': '^/'},
-            templateUrl: '/partials/home.html',
-            controller: 'homeController',
-            dependencies: ['lazy/controllers/homeController']
-          }
-        },
-        {
-          name: 'contacts', definition: {
-            url: '/contacts',
-            abstract: true,
-            templateUrl: '/partials/contacts.html',
-            controller: 'contactsController',
-            dependencies: ['lazy/controllers/contactsController']
-          },
-          children: [
-            {
-              name: 'list', definition: {
-                url: '',
-                templateUrl: '/partials/contacts.list.html'
-              }
-            },
-            {
-              name: 'detail', definition: {
-                url: '/{contactId}',
-                aliases: {'/c?id': '/:id', '/user/{id}': '/:id'},
-                resolveServices: {
-                  something: 'getContactIdFromParams'
-                },
-                dependencies: ['lazy/controllers/contactsDetailController', 'lazy/services/getContactIdFromParams', 'lazy/services/getContactIdHtml'],
-                views: {
-                  '': {
-                    templateUrl: '/partials/contacts.detail.html',
-                    controller: 'contactsDetailController'
-                  },
-                  'hint@': {
-                    template: 'This is contacts.detail populating the view "hint@"'
-                  },
-                  'menu': {
-                    templateService: 'getContactIdHtml'
-                  }
-                }
-              },
-              children: [
-                {
-                  name: 'item', definition: {
-                    url: '/item/:itemId',
-                    dependencies: ['lazy/controllers/contactsDetailItemController'],
-                    views: {
-                      '': {
-                        templateUrl: '/partials/contacts.detail.item.html',
-                        controller: 'contactsDetailItemController'
-                      },
-                      'hint@': {
-                        template: 'Overriding the view "hint@"'
-                      }
-                    }
-                  },
-                  children: [
-                    {
-                      name: 'edit', definition: {
-                        dependencies: ['lazy/controllers/contactsDetailItemEditController'],
-                        views: {
-                          '@contacts.detail': {
-                            templateUrl: '/partials/contacts.detail.item.edit.html',
-                            controller: 'contactsDetailItemEditController'
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          name: 'about', definition: {
-            url: '/about',
-            dependencies: ['lazy/services/getHelloWorld'],
-            i: 'getHelloWorld'
-          }
-        }
-      ]
-    };
+        var requestUrl = this.getRouteUrl
+          + '?' + this.pathParameter + '=' + encodeURIComponent(path)
+          + '&' + this.jsonSummaryParameter + '=' + encodeURIComponent(angular.toJson(jsonSummary));
 
+        var deferred = $q.defer();
 
-    return $routeLoader;
+        $http({method: 'GET', url: requestUrl}).
+          success(function(data, status, headers, config) {
+            deferred.resolve(angular.fromJson(data));
+          }).
+          error(function(data, status, headers, config) {
+            deferred.reolve(null);
+          });
+
+        return deferred.promise;
+      };
+    }
+
+    Object.defineProperty(RouteLoader.prototype, 'getRouteUrl', {
+      get: function() { return this._getRouteUrl; },
+      set: function(val) { this._getRouteUrl = val; }
+    });
+
+    Object.defineProperty(RouteLoader.prototype, 'jsonSummaryParameter', {
+      get: function() { return this._jsonSummaryParameter; },
+      set: function(val) { this._jsonSummaryParameter = val; }
+    });
+
+    Object.defineProperty(RouteLoader.prototype, 'pathParameter', {
+      get: function() { return this._pathParameter; },
+      set: function(val) { this._pathParameter = val; }
+    });
+
+    Object.defineProperty(RouteLoader.prototype, 'getUpdatesUrl', {
+      get: function() { return this._getUpdatesUrl; },
+      set: function(val) { this._getUpdatesUrl = val; }
+    });
+
+    return new RouteLoader();
   }
-  $get.$inject = ['$q'];
+  $get.$inject = ['$q', '$location', '$http'];
   // $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato'];
   this.$get = $get;
 
@@ -650,9 +595,12 @@ function $DetourProvider(
     if (!angular.isString(localName) || localName.indexOf('@') >= 0) {
       throw new Error('Invalid local state name (' + localName + ')');
     }
-    if (this.parent && this.parent.getChild(localName)) {
-        throw new Error('State ' + parent.fullName  + ' already has child ' + localName);
-    }
+
+    // can't redefine if we throw this error here
+    //not really useful, anyway
+    // if (this.parent && this.parent.getChild(localName)) {
+    //     throw new Error('State ' + parent.fullName  + ' already has child ' + localName);
+    // }
   };
 
   //*********************************************
@@ -1207,6 +1155,7 @@ function $DetourProvider(
   Object.defineProperty(State.prototype, 'jsonSummary', {
     get: function() {
       var summary = {
+        n: this.name
       };
 
       if (Object.keys(this.children).length > 0) {
@@ -1351,10 +1300,10 @@ function $DetourProvider(
         f: this.fallback
       };
 
-      var tree = {};
+      var tree = [];
       for (var childName in this.children) {
         var child = this.children[childName];
-        tree[child.name] = child.jsonSummary;
+        tree.push(child.jsonSummary);
       }
 
       summary.t = tree;
@@ -1457,7 +1406,7 @@ function $DetourProvider(
   //***************************************
   //service definition
   //***************************************
-  function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato, $routeLoader) {
+  function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato) {
 
     var TransitionSuperseded = $q.reject(new Error('transition superseded'));
     var TransitionPrevented = $q.reject(new Error('transition prevented'));
@@ -1470,6 +1419,11 @@ function $DetourProvider(
     };
 
     var lazy = that.lazy;
+    var routeLoader = null;
+
+    $detour.setRouteLoader = function(loader) {
+      routeLoader = loader;
+    };
 
     $detour.registerValue = $couchPotato.registerValue;
     $detour.registerFactory = $couchPotato.registerFactory;
@@ -1770,16 +1724,16 @@ function $DetourProvider(
       }
 
       if (!handled && !secondTry && lazy) {
-        getRoute($location).then(function() {
+        getRoute().then(function() {
           update(event, next, current, true);
         });
       }
     }
 
-    function getRoute($location) {
+    function getRoute() {
       var deferred = $q.defer();
 
-      $routeLoader.getRoute($location, statesTree.jsonSummary).then(
+      routeLoader.getRoute(statesTree.jsonSummary).then(
         function(json) {
           statesTree.mergeJson(json);
           deferred.resolve();

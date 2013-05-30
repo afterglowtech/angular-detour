@@ -8,125 +8,70 @@ function $RouteLoaderProvider(
 ) {
   var that = this;
 
+  this.getRouteUrl = null;
+  this.jsonSummaryParameter = 's';
+  this.pathParameter = 'r';
+  this.getUpdatesUrl = null;
+
 
   //***************************************
   //service definition
   //***************************************
   function $get(
-    $q
+    $q, $location, $http
     // $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato
   ) {
 
-    var $routeLoader = {
-    };
+    function RouteLoader() {
+      this._getRouteUrl = that.getRouteUrl;
+      this._jsonSummaryParameter = that.jsonSummaryParameter;
+      this._pathParameter = that.pathParameter;
+      this._getUpdatesUrl = that.getUpdatesUrl;
 
-    $routeLoader.getRoute = function() {
-      var deferred = $q.defer();
-      deferred.resolve(theJson);
-      return deferred.promise;
-    };
+      this.getRoute = function(jsonSummary) {
+        var path = $location.path();
 
-    var theJson = {
-      f: '/404',
-      t: [
-        {
-          n: '404', d: {
-            u: '/404',
-            t: 'partials/fourOhfour.html'
-          }
-        },
-        {
-          name: 'home', definition: {
-            url: '/',
-            aliases: {'': '^/'},
-            templateUrl: '/partials/home.html',
-            controller: 'homeController',
-            dependencies: ['lazy/controllers/homeController']
-          }
-        },
-        {
-          name: 'contacts', definition: {
-            url: '/contacts',
-            abstract: true,
-            templateUrl: '/partials/contacts.html',
-            controller: 'contactsController',
-            dependencies: ['lazy/controllers/contactsController']
-          },
-          children: [
-            {
-              name: 'list', definition: {
-                url: '',
-                templateUrl: '/partials/contacts.list.html'
-              }
-            },
-            {
-              name: 'detail', definition: {
-                url: '/{contactId}',
-                aliases: {'/c?id': '/:id', '/user/{id}': '/:id'},
-                resolveServices: {
-                  something: 'getContactIdFromParams'
-                },
-                dependencies: ['lazy/controllers/contactsDetailController', 'lazy/services/getContactIdFromParams', 'lazy/services/getContactIdHtml'],
-                views: {
-                  '': {
-                    templateUrl: '/partials/contacts.detail.html',
-                    controller: 'contactsDetailController'
-                  },
-                  'hint@': {
-                    template: 'This is contacts.detail populating the view "hint@"'
-                  },
-                  'menu': {
-                    templateService: 'getContactIdHtml'
-                  }
-                }
-              },
-              children: [
-                {
-                  name: 'item', definition: {
-                    url: '/item/:itemId',
-                    dependencies: ['lazy/controllers/contactsDetailItemController'],
-                    views: {
-                      '': {
-                        templateUrl: '/partials/contacts.detail.item.html',
-                        controller: 'contactsDetailItemController'
-                      },
-                      'hint@': {
-                        template: 'Overriding the view "hint@"'
-                      }
-                    }
-                  },
-                  children: [
-                    {
-                      name: 'edit', definition: {
-                        dependencies: ['lazy/controllers/contactsDetailItemEditController'],
-                        views: {
-                          '@contacts.detail': {
-                            templateUrl: '/partials/contacts.detail.item.edit.html',
-                            controller: 'contactsDetailItemEditController'
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          name: 'about', definition: {
-            url: '/about',
-            dependencies: ['lazy/services/getHelloWorld'],
-            i: 'getHelloWorld'
-          }
-        }
-      ]
-    };
+        var requestUrl = this.getRouteUrl
+          + '?' + this.pathParameter + '=' + encodeURIComponent(path)
+          + '&' + this.jsonSummaryParameter + '=' + encodeURIComponent(angular.toJson(jsonSummary));
 
+        var deferred = $q.defer();
 
-    return $routeLoader;
+        $http({method: 'GET', url: requestUrl}).
+          success(function(data, status, headers, config) {
+            deferred.resolve(angular.fromJson(data));
+          }).
+          error(function(data, status, headers, config) {
+            deferred.reolve(null);
+          });
+
+        return deferred.promise;
+      };
+    }
+
+    Object.defineProperty(RouteLoader.prototype, 'getRouteUrl', {
+      get: function() { return this._getRouteUrl; },
+      set: function(val) { this._getRouteUrl = val; }
+    });
+
+    Object.defineProperty(RouteLoader.prototype, 'jsonSummaryParameter', {
+      get: function() { return this._jsonSummaryParameter; },
+      set: function(val) { this._jsonSummaryParameter = val; }
+    });
+
+    Object.defineProperty(RouteLoader.prototype, 'pathParameter', {
+      get: function() { return this._pathParameter; },
+      set: function(val) { this._pathParameter = val; }
+    });
+
+    Object.defineProperty(RouteLoader.prototype, 'getUpdatesUrl', {
+      get: function() { return this._getUpdatesUrl; },
+      set: function(val) { this._getUpdatesUrl = val; }
+    });
+
+    return new RouteLoader();
   }
-  $get.$inject = ['$q'];
+  $get.$inject = ['$q', '$location', '$http'];
   // $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato'];
   this.$get = $get;
 

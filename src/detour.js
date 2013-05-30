@@ -630,6 +630,7 @@ function $DetourProvider(
   Object.defineProperty(State.prototype, 'jsonSummary', {
     get: function() {
       var summary = {
+        n: this.name
       };
 
       if (Object.keys(this.children).length > 0) {
@@ -774,10 +775,10 @@ function $DetourProvider(
         f: this.fallback
       };
 
-      var tree = {};
+      var tree = [];
       for (var childName in this.children) {
         var child = this.children[childName];
-        tree[child.name] = child.jsonSummary;
+        tree.push(child.jsonSummary);
       }
 
       summary.t = tree;
@@ -880,7 +881,7 @@ function $DetourProvider(
   //***************************************
   //service definition
   //***************************************
-  function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato, $routeLoader) {
+  function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato) {
 
     var TransitionSuperseded = $q.reject(new Error('transition superseded'));
     var TransitionPrevented = $q.reject(new Error('transition prevented'));
@@ -893,6 +894,11 @@ function $DetourProvider(
     };
 
     var lazy = that.lazy;
+    var routeLoader = null;
+
+    $detour.setRouteLoader = function(loader) {
+      routeLoader = loader;
+    };
 
     $detour.registerValue = $couchPotato.registerValue;
     $detour.registerFactory = $couchPotato.registerFactory;
@@ -1193,16 +1199,16 @@ function $DetourProvider(
       }
 
       if (!handled && !secondTry && lazy) {
-        getRoute($location).then(function() {
+        getRoute().then(function() {
           update(event, next, current, true);
         });
       }
     }
 
-    function getRoute($location) {
+    function getRoute() {
       var deferred = $q.defer();
 
-      $routeLoader.getRoute($location, statesTree.jsonSummary).then(
+      routeLoader.getRoute(statesTree.jsonSummary).then(
         function(json) {
           statesTree.mergeJson(json);
           deferred.resolve();
