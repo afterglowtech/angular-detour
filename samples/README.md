@@ -1,7 +1,7 @@
 To run the samples:
 * clone the repository
 * npm install
-* grunt build
+* grunt
 * cd to one of
  * 1-ui-router-compatibility
  * 2-runtime-config or
