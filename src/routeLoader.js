@@ -9,8 +9,8 @@ function $RouteLoaderProvider(
   var that = this;
 
   this.getRouteUrl = null;
-  this.jsonSummaryParameter = 's';
-  this.pathParameter = 'r';
+  this.knownStatesParameter = 'k';
+  this.routeParameter = 'r';
   this.getUpdatesUrl = null;
 
 
@@ -24,16 +24,16 @@ function $RouteLoaderProvider(
 
     function RouteLoader() {
       this._getRouteUrl = that.getRouteUrl;
-      this._jsonSummaryParameter = that.jsonSummaryParameter;
-      this._pathParameter = that.pathParameter;
+      this._knownStatesParameter = that.knownStatesParameter;
+      this._routeParameter = that.routeParameter;
       this._getUpdatesUrl = that.getUpdatesUrl;
 
-      this.getRoute = function(jsonSummary) {
-        var path = $location.path();
+      this.getRoute = function(knownStates) {
+        var route = $location.path();
 
         var requestUrl = this.getRouteUrl
-          + '?' + this.pathParameter + '=' + encodeURIComponent(path)
-          + '&' + this.jsonSummaryParameter + '=' + encodeURIComponent(angular.toJson(jsonSummary));
+          + '?' + this.routeParameter + '=' + encodeURIComponent(route)
+          + '&' + this.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(knownStates));
 
         var deferred = $q.defer();
 
@@ -54,14 +54,14 @@ function $RouteLoaderProvider(
       set: function(val) { this._getRouteUrl = val; }
     });
 
-    Object.defineProperty(RouteLoader.prototype, 'jsonSummaryParameter', {
-      get: function() { return this._jsonSummaryParameter; },
-      set: function(val) { this._jsonSummaryParameter = val; }
+    Object.defineProperty(RouteLoader.prototype, 'knownStatesParameter', {
+      get: function() { return this._knownStatesParameter; },
+      set: function(val) { this._knownStatesParameter = val; }
     });
 
-    Object.defineProperty(RouteLoader.prototype, 'pathParameter', {
-      get: function() { return this._pathParameter; },
-      set: function(val) { this._pathParameter = val; }
+    Object.defineProperty(RouteLoader.prototype, 'routeParameter', {
+      get: function() { return this._routeParameter; },
+      set: function(val) { this._routeParameter = val; }
     });
 
     Object.defineProperty(RouteLoader.prototype, 'getUpdatesUrl', {

@@ -627,7 +627,7 @@ function $DetourProvider(
     return true;
   };
 
-  Object.defineProperty(State.prototype, 'jsonSummary', {
+  Object.defineProperty(State.prototype, 'knownStates', {
     get: function() {
       var summary = {
         n: this.name
@@ -637,7 +637,7 @@ function $DetourProvider(
         var children = {};
         for (var childName in this.children) {
           var child = this.children[childName];
-          children[child.name] = child.jsonSummary;
+          children[child.name] = child.knownStates;
         }
         summary.c = children;
       }
@@ -768,17 +768,17 @@ function $DetourProvider(
     }
   };
 
-  Object.defineProperty(StatesTree.prototype, 'jsonSummary', {
+  Object.defineProperty(StatesTree.prototype, 'knownStates', {
     get: function() {
       var summary = {
-        s: this._serial,
+        s: this.serial,
         f: this.fallback
       };
 
       var tree = [];
       for (var childName in this.children) {
         var child = this.children[childName];
-        tree.push(child.jsonSummary);
+        tree.push(child.knownStates);
       }
 
       summary.t = tree;
@@ -1120,7 +1120,7 @@ function $DetourProvider(
         // the global $detour and $stateParams values.
         var globals = dst.globals = { $stateParams: $stateParams };
         resolve(state.resolve, globals);
-        resolveServices(state.resolveServices, globals);
+        resolveServices(state.resolveByService, globals);
         globals.$$state = state; // Provide access to the state itself for internal use
 
 
@@ -1208,9 +1208,11 @@ function $DetourProvider(
     function getRoute() {
       var deferred = $q.defer();
 
-      routeLoader.getRoute(statesTree.jsonSummary).then(
+      routeLoader.getRoute(statesTree.knownStates).then(
         function(json) {
-          statesTree.mergeJson(json);
+          if (json) {
+            statesTree.mergeJson(json);
+          }
           deferred.resolve();
         }
       );
