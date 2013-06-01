@@ -21,15 +21,15 @@ define([], function () {
 
       $detour.mergeJson({
         f: '/404',
-        t: [
-          {
-            n: '404', d: {
+        t: {
+          '404': {
+            d: {
               u: '/404',
               t: 'partials/fourOhfour.html'
             }
           },
-          {
-            name: 'home', definition: {
+          'home': {
+            definition: {
               url: '/',
               aliases: {'': '^/'},
               templateUrl: '/partials/home.html',
@@ -37,26 +37,26 @@ define([], function () {
               dependencies: ['controllers/homeController']
             }
           },
-          {
-            name: 'contacts', definition: {
+          'contacts': {
+            definition: {
               url: '/contacts',
               abstract: true,
               templateUrl: '/partials/contacts.html',
               controller: 'contactsController',
               dependencies: ['controllers/contactsController']
             },
-            children: [
-              {
-                name: 'list', definition: {
+            children: {
+              'list': {
+                definition: {
                   url: '',
                   templateUrl: '/partials/contacts.list.html'
                 }
               },
-              {
-                name: 'detail', definition: {
+              'detail': {
+                definition: {
                   url: '/{contactId}',
                   aliases: {'/c?id': '/:id', '/user/{id}': '/:id'},
-                  resolveServices: {
+                  resolveByService: {
                     something: 'getContactIdFromParams'
                   },
                   dependencies: ['controllers/contactsDetailController', 'services/getContactIdFromParams', 'services/getContactIdHtml'],
@@ -73,9 +73,9 @@ define([], function () {
                     }
                   }
                 },
-                children: [
-                  {
-                    name: 'item', definition: {
+                children: {
+                  'item': {
+                    definition: {
                       url: '/item/:itemId',
                       dependencies: ['controllers/contactsDetailItemController'],
                       views: {
@@ -88,9 +88,9 @@ define([], function () {
                         }
                       }
                     },
-                    children: [
-                      {
-                        name: 'edit', definition: {
+                    children: {
+                      'edit': {
+                        definition: {
                           dependencies: ['controllers/contactsDetailItemEditController'],
                           views: {
                             '@contacts.detail': {
@@ -100,20 +100,20 @@ define([], function () {
                           }
                         }
                       }
-                    ]
+                    }
                   }
-                ]
+                }
               }
-            ]
+            }
           },
-          {
-            name: 'about', definition: {
+          'about': {
+            definition: {
               url: '/about',
               dependencies: ['services/getHelloWorld'],
               i: 'getHelloWorld'
             }
           }
-        ]
+        }
       });
 
       //"cheating" so that detour is available in requirejs

@@ -1,14 +1,15 @@
 {
   "f": "/404",
-  "t": [
-    {
-      "n": "404", "d": {
+  "t": {
+    "404": {
+      "z": true,
+      "d": {
         "u": "/404",
         "t": "partials/fourOhfour.html"
       }
     },
-    {
-      "name": "home", "definition": {
+    "home": {
+      "z": true, "definition": {
         "url": "/",
         "aliases": {"": "^/"},
         "templateUrl": "/partials/home.html",
@@ -16,23 +17,24 @@
         "dependencies": ["lazy/controllers/homeController"]
       }
     },
-    {
-      "name": "contacts", "definition": {
+    "contacts": {
+      "z": true,
+      "definition": {
         "url": "/contacts",
         "abstract": true,
         "templateUrl": "/partials/contacts.html",
         "controller": "contactsController",
         "dependencies": ["lazy/controllers/contactsController"]
       },
-      "children": [
-        {
-          "name": "list", "definition": {
+      "children": {
+        "list": {
+          "definition": {
             "url": "",
             "templateUrl": "/partials/contacts.list.html"
           }
         },
-        {
-          "name": "detail", "definition": {
+        "detail": {
+          "definition": {
             "url": "/{contactId}",
             "aliases": {"/c?id": "/:id", "/user/{id}": "/:id"},
             "resolveByService": {
@@ -52,9 +54,9 @@
               }
             }
           },
-          "children": [
-            {
-              "name": "item", "definition": {
+          "children": {
+            "item": {
+              "definition": {
                 "url": "/item/:itemId",
                 "dependencies": ["lazy/controllers/contactsDetailItemController"],
                 "views": {
@@ -67,9 +69,9 @@
                   }
                 }
               },
-              "children": [
-                {
-                  "name": "edit", "definition": {
+              "children": {
+                "edit": {
+                  "definition": {
                     "dependencies": ["lazy/controllers/contactsDetailItemEditController"],
                     "views": {
                       "@contacts.detail": {
@@ -79,18 +81,19 @@
                     }
                   }
                 }
-              ]
+              }
             }
-          ]
+          }
         }
-      ]
+      }
     },
-    {
-      "name": "about", "definition": {
+    "about": {
+      "z": true,
+      "definition": {
         "url": "/about",
         "dependencies": ["lazy/services/getHelloWorld"],
         "i": "getHelloWorld"
       }
     }
-  ]
+  }
 }

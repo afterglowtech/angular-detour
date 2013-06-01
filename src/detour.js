@@ -568,6 +568,30 @@ function $DetourProvider(
         : null;
   };
 
+  State.prototype.expandDefinition = function(definition) {
+    this.expandJson(definition, 'url', 'u');
+    this.expandJson(definition, 'dependencies', 'd');
+    this.expandJson(definition, 'resolveByService', 'r');
+    this.expandJson(definition, 'templateService', 'i');
+    this.expandJson(definition, 'aliases', 's');
+    this.expandJson(definition, 'controller', 'c');
+    this.expandJson(definition, 'templateUrl', 't');
+    this.expandJson(definition, 'template', 'l');
+    this.expandJson(definition, 'data', 'a');
+    this.expandJson(definition, 'abstract', 'b');
+    this.expandJson(definition, 'views', 'v');
+  };
+
+  State.prototype.expandView = function(view) {
+    this.expandJson(view, 'url', 'u');
+    this.expandJson(view, 'resolveByService', 'r');
+    this.expandJson(view, 'templateService', 'i');
+    this.expandJson(view, 'controller', 'c');
+    this.expandJson(view, 'templateUrl', 't');
+    this.expandJson(view, 'template', 'l');
+    this.expandJson(view, 'data', 'a');
+  };
+
   State.prototype.expandJson = function(object, longPropertyName, shortPropertyName) {
     if (object[shortPropertyName]) {
       object[longPropertyName] = object[shortPropertyName];
@@ -575,9 +599,8 @@ function $DetourProvider(
     }
   };
 
-  State.prototype.mergeChild = function(childJson) {
+  State.prototype.mergeChild = function(name, childJson) {
     //the name of the child we're working with
-    var name = this.getObjJson(childJson, 'name', 'n');
     var del = this.getObjJson(childJson, 'delete', 'x');
     if (del) {
       this.removeChild(name);
@@ -588,27 +611,11 @@ function $DetourProvider(
       if (definition) {
         //a definition is specified -- update child
         definition.localName = name;
-        this.expandJson(definition, 'url', 'u');
-        this.expandJson(definition, 'dependencies', 'd');
-        this.expandJson(definition, 'resolveByService', 'r');
-        this.expandJson(definition, 'templateService', 'i');
-        this.expandJson(definition, 'aliases', 's');
-        this.expandJson(definition, 'controller', 'c');
-        this.expandJson(definition, 'templateUrl', 't');
-        this.expandJson(definition, 'template', 'l');
-        this.expandJson(definition, 'data', 'a');
-        this.expandJson(definition, 'abstract', 'b');
-        this.expandJson(definition, 'views', 'v');
-        if (childJson.views) {
-          for (var viewName in childJson.views) {
-            var view = childJson.views[viewName];
-            this.expandJson(view, 'url', 'u');
-            this.expandJson(view, 'resolveByService', 'r');
-            this.expandJson(view, 'templateService', 'i');
-            this.expandJson(view, 'controller', 'c');
-            this.expandJson(view, 'templateUrl', 't');
-            this.expandJson(view, 'template', 'l');
-            this.expandJson(view, 'data', 'a');
+        this.expandDefinition(definition);
+        if (definition.views) {
+          for (var viewName in definition.views) {
+            var view = definition.views[viewName];
+            this.expandView(view);
           }
         }
 
@@ -618,8 +625,9 @@ function $DetourProvider(
       var children = this.getObjJson(childJson, 'children', 'c');
       if (children) {
         var thisChild = this.getChild(name);
-        for (var i = 0; i < children.length; i++) {
-          thisChild.mergeChild(children[i]);
+        for (var grandchildName in children) {
+          var grandChild = children[grandchildName];
+          thisChild.mergeChild(grandchildName, grandChild);
         }
       }
     }
@@ -629,17 +637,15 @@ function $DetourProvider(
 
   Object.defineProperty(State.prototype, 'knownStates', {
     get: function() {
-      var summary = {
-        n: this.name
-      };
+      var summary = {};
 
       if (Object.keys(this.children).length > 0) {
         var children = {};
         for (var childName in this.children) {
           var child = this.children[childName];
-          children[child.name] = child.knownStates;
+          children[child.localName] = child.knownStates;
         }
-        summary.c = children;
+        summary = children;
       }
 
       return summary;
@@ -750,8 +756,9 @@ function $DetourProvider(
       var tree = this.getObjJson(json, 'tree', 't');
 
       if (tree) {
-        for (var i = 0; i < tree.length; i++) {
-          this.mergeChild(tree[i]);
+        for (var childName in tree) {
+          var child = tree[childName];
+          this.mergeChild(childName, child);
         }
       }
 
@@ -760,7 +767,7 @@ function $DetourProvider(
         this.fallback = fallback;
       }
 
-      this._serial = serial;
+      this.serial = serial;
 
       this.initialize();
 
@@ -775,10 +782,10 @@ function $DetourProvider(
         f: this.fallback
       };
 
-      var tree = [];
+      var tree = {};
       for (var childName in this.children) {
         var child = this.children[childName];
-        tree.push(child.knownStates);
+        tree[childName] = child.knownStates;
       }
 
       summary.t = tree;
@@ -894,10 +901,10 @@ function $DetourProvider(
     };
 
     var lazy = that.lazy;
-    var routeLoader = null;
+    var stateLoader = null;
 
-    $detour.setRouteLoader = function(loader) {
-      routeLoader = loader;
+    $detour.setStateLoader = function(loader) {
+      stateLoader = loader;
     };
 
     $detour.registerValue = $couchPotato.registerValue;
@@ -920,114 +927,123 @@ function $DetourProvider(
     //***************************************
     //transitionTo
     //***************************************
-    function transitionTo(to, toParams, updateLocation) {
-      if (!angular.isDefined(updateLocation)) {
-        updateLocation = true;
+    function transitionTo(to, toParams, updateLocation, secondTry) {
+      var toState = statesTree.getState(to);
+      if (!toState && lazy && !secondTry) {
+        return getLazyState(to).then(function() {
+          return transitionTo(to, toParams, updateLocation, true);
+        });
       }
+      else {
+        to = toState;
 
-      to = statesTree.getState(to);
-      if (to['abstract']) {
-        throw new Error('Cannot transition to abstract state \'' + to + '\'');
-      }
-      var toPath = to.path,
-          from = $detour.$current, fromParams = $detour.params, fromPath = from.path;
-
-      // Starting from the root of the path, keep all levels that haven't changed
-      var keep, state, locals = statesTree.locals, toLocals = [];
-      for (keep = 0, state = toPath[keep];
-           state && state === fromPath[keep] && equalForKeys(toParams, fromParams, state.ownParams);
-           keep++, state = toPath[keep]) {
-        locals = toLocals[keep] = state.locals;
-      }
-
-      // If we're going to the same state and all locals are kept, we've got nothing to do.
-      // But clear 'transition', as we still want to cancel any other pending transitions.
-      // TODO: We may not want to bump 'transition' if we're called from a location change that we've initiated ourselves,
-      // because we might accidentally abort a legitimate transition initiated from code?
-      if (to === from && locals === from.locals) {
-        $detour.transition = null;
-        return $q.when($detour.current);
-      }
-
-      // Normalize/filter parameters before we pass them to event handlers etc.
-      toParams = normalize(to.preparedParams, toParams || {});
-
-      // Broadcast start event and cancel the transition if requested
-      if ($rootScope.$broadcast('$stateChangeStart', to.self, toParams, from.self, fromParams).defaultPrevented) {
-        return TransitionPrevented;
-      }
-
-      // Resolve locals for the remaining states, but don't update any global state just
-      // yet -- if anything fails to resolve the current state needs to remain untouched.
-      // We also set up an inheritance chain for the locals here. This allows the view directive
-      // to quickly look up the correct definition for each view in the current state. Even
-      // though we create the locals object itself outside resolveState(), it is initially
-      // empty and gets filled asynchronously. We need to keep track of the promise for the
-      // (fully resolved) current locals, and pass this down the chain.
-      var resolved = $q.when(locals);
-      for (var l=keep; l<toPath.length; l++, state=toPath[l]) {
-        locals = toLocals[l] = inherit(locals);
-        resolved = resolveState(state, toParams, state===to, resolved, locals);
-      }
-
-
-      // Once everything is resolved, we are ready to perform the actual transition
-      // and return a promise for the new state. We also keep track of what the
-      // current promise is, so that we can detect overlapping transitions and
-      // keep only the outcome of the last transition.
-      var transition = $detour.transition = resolved.then(function () {
-        var l, entering, exiting;
-
-        if ($detour.transition !== transition) {
-          return TransitionSuperseded;
+        if (!angular.isDefined(updateLocation)) {
+          updateLocation = true;
         }
 
-        // Exit 'from' states not kept
-        for (l=fromPath.length-1; l>=keep; l--) {
-          exiting = fromPath[l];
-          if (exiting.self.onExit) {
-            $injector.invoke(exiting.self.onExit, exiting.self, exiting.locals.globals);
+        if (to['abstract']) {
+          throw new Error('Cannot transition to abstract state \'' + to + '\'');
+        }
+        var toPath = to.path,
+            from = $detour.$current, fromParams = $detour.params, fromPath = from.path;
+
+        // Starting from the root of the path, keep all levels that haven't changed
+        var keep, state, locals = statesTree.locals, toLocals = [];
+        for (keep = 0, state = toPath[keep];
+             state && state === fromPath[keep] && equalForKeys(toParams, fromParams, state.ownParams);
+             keep++, state = toPath[keep]) {
+          locals = toLocals[keep] = state.locals;
+        }
+
+        // If we're going to the same state and all locals are kept, we've got nothing to do.
+        // But clear 'transition', as we still want to cancel any other pending transitions.
+        // TODO: We may not want to bump 'transition' if we're called from a location change that we've initiated ourselves,
+        // because we might accidentally abort a legitimate transition initiated from code?
+        if (to === from && locals === from.locals) {
+          $detour.transition = null;
+          return $q.when($detour.current);
+        }
+
+        // Normalize/filter parameters before we pass them to event handlers etc.
+        toParams = normalize(to.preparedParams, toParams || {});
+
+        // Broadcast start event and cancel the transition if requested
+        if ($rootScope.$broadcast('$stateChangeStart', to.self, toParams, from.self, fromParams).defaultPrevented) {
+          return TransitionPrevented;
+        }
+
+        // Resolve locals for the remaining states, but don't update any global state just
+        // yet -- if anything fails to resolve the current state needs to remain untouched.
+        // We also set up an inheritance chain for the locals here. This allows the view directive
+        // to quickly look up the correct definition for each view in the current state. Even
+        // though we create the locals object itself outside resolveState(), it is initially
+        // empty and gets filled asynchronously. We need to keep track of the promise for the
+        // (fully resolved) current locals, and pass this down the chain.
+        var resolved = $q.when(locals);
+        for (var l=keep; l<toPath.length; l++, state=toPath[l]) {
+          locals = toLocals[l] = inherit(locals);
+          resolved = resolveState(state, toParams, state===to, resolved, locals);
+        }
+
+
+        // Once everything is resolved, we are ready to perform the actual transition
+        // and return a promise for the new state. We also keep track of what the
+        // current promise is, so that we can detect overlapping transitions and
+        // keep only the outcome of the last transition.
+        var transition = $detour.transition = resolved.then(function () {
+          var l, entering, exiting;
+
+          if ($detour.transition !== transition) {
+            return TransitionSuperseded;
           }
-          exiting.locals = null;
-        }
 
-        // Enter 'to' states not kept
-        for (l=keep; l<toPath.length; l++) {
-          entering = toPath[l];
-          entering.locals = toLocals[l];
-          if (entering.self.onEnter) {
-            $injector.invoke(entering.self.onEnter, entering.self, entering.locals.globals);
+          // Exit 'from' states not kept
+          for (l=fromPath.length-1; l>=keep; l--) {
+            exiting = fromPath[l];
+            if (exiting.self.onExit) {
+              $injector.invoke(exiting.self.onExit, exiting.self, exiting.locals.globals);
+            }
+            exiting.locals = null;
           }
-        }
 
-        // Update globals in $detour
-        $detour.$current = to;
-        $detour.current = to.self;
-        $detour.params = toParams;
-        angular.copy($detour.params, $stateParams);
-        $detour.transition = null;
+          // Enter 'to' states not kept
+          for (l=keep; l<toPath.length; l++) {
+            entering = toPath[l];
+            entering.locals = toLocals[l];
+            if (entering.self.onEnter) {
+              $injector.invoke(entering.self.onEnter, entering.self, entering.locals.globals);
+            }
+          }
 
-        // Update $location
-        var toNav = to.navigable;
-        if (updateLocation && toNav) {
-          $location.url(toNav.preparedUrl.format(toNav.locals.globals.$stateParams));
-        }
+          // Update globals in $detour
+          $detour.$current = to;
+          $detour.current = to.self;
+          $detour.params = toParams;
+          angular.copy($detour.params, $stateParams);
+          $detour.transition = null;
 
-        $rootScope.$broadcast('$stateChangeSuccess', to.self, toParams, from.self, fromParams);
+          // Update $location
+          var toNav = to.navigable;
+          if (updateLocation && toNav) {
+            $location.url(toNav.preparedUrl.format(toNav.locals.globals.$stateParams));
+          }
 
-        return $detour.current;
-      }, function (error) {
-        if ($detour.transition !== transition) {
-          return TransitionSuperseded;
-        }
+          $rootScope.$broadcast('$stateChangeSuccess', to.self, toParams, from.self, fromParams);
 
-        $detour.transition = null;
-        $rootScope.$broadcast('$stateChangeError', to.self, toParams, from.self, fromParams, error);
+          return $detour.current;
+        }, function (error) {
+          if ($detour.transition !== transition) {
+            return TransitionSuperseded;
+          }
 
-        return $q.reject(error);
-      });
+          $detour.transition = null;
+          $rootScope.$broadcast('$stateChangeError', to.self, toParams, from.self, fromParams, error);
 
-      return transition;
+          return $q.reject(error);
+        });
+
+        return transition;
+      }
 
     }
     $detour.transitionTo = transitionTo;
@@ -1199,16 +1215,31 @@ function $DetourProvider(
       }
 
       if (!handled && !secondTry && lazy) {
-        getRoute().then(function() {
+        getLazyRoute($location.path()).then(function() {
           update(event, next, current, true);
         });
       }
     }
 
-    function getRoute() {
+    function getLazyRoute(route) {
       var deferred = $q.defer();
 
-      routeLoader.getRoute(statesTree.knownStates).then(
+      stateLoader.getRoute(route, statesTree.knownStates).then(
+        function(json) {
+          if (json) {
+            statesTree.mergeJson(json);
+          }
+          deferred.resolve();
+        }
+      );
+
+      return deferred.promise;
+    }
+
+    function getLazyState(stateName) {
+      var deferred = $q.defer();
+
+      stateLoader.getState(stateName, statesTree.knownStates).then(
         function(json) {
           if (json) {
             statesTree.mergeJson(json);
@@ -1229,7 +1260,7 @@ function $DetourProvider(
 
     return $detour;
   }
-  $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato', '$routeLoader'];
+  $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato', '$stateLoader'];
   this.$get = $get;
 
 }

@@ -5,25 +5,23 @@ define(['detourService'], function (detour) {
     function ($scope,   $detour) {
       $scope.removeAbout = function() {
         $detour.mergeJson({
-          t: [
-            {
-              name: 'about', 'delete': true
-            }
-          ]
+          t: {
+            'about': {'delete': true }
+          }
         });
       };
 
       $scope.addAbout = function() {
         $detour.mergeJson({
-          t: [
-            {
-              name: 'about', definition: {
+          t: {
+            'about': {
+              definition: {
                 url: '/about',
-                dependencies: ['services/getHelloWorld'],
+                dependencies: ['lazy/services/getHelloWorld'],
                 i: 'getHelloWorld'
               }
             }
-          ]
+          }
         });
       };
     }]
