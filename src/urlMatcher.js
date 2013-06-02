@@ -1,4 +1,4 @@
-define([], function() {
+define(['common'], function(common) {
   /**
    * Matches URLs against patterns and extracts named parameters from the path or the search
    * part of the URL. A URL pattern consists of a path pattern, optionally followed by '?' and a list
@@ -104,7 +104,7 @@ define([], function() {
       this.sourcePath = pattern.substring(0, last+i);
 
       // Allow parameters to be separated by '?' as well as '&' to make concat() easier
-      forEach(search.substring(1).split(/[&?]/), addParameter);
+      common.forEach(search.substring(1).split(/[&?]/), addParameter);
     } else {
       this.sourcePath = pattern;
       this.sourceSearch = '';

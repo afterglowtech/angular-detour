@@ -1,3 +1,4 @@
+define(['./detourModule'], function() {
 // var   matchSvc = '$match'
 //       , abstractVar = 'abstract'
 //       , detourSvc = '$detour'
@@ -14,7 +15,6 @@ function $StateLoaderProvider(
   this.routeParameter = 'r';
   this.stateParameter = 's';
   this.getUpdatesUrl = null;
-
 
   //***************************************
   //service definition
@@ -107,3 +107,5 @@ function $StateLoaderProvider(
 
 angular.module('agt.detour')
   .provider('$stateLoader', $StateLoaderProvider);
+
+});

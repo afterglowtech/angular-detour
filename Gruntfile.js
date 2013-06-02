@@ -1,18 +1,24 @@
 module.exports = function(grunt) {
 
   grunt.loadNpmTasks('grunt-bower-task');
-  grunt.renameTask('bower', 'bowerInstall');
+  grunt.renameTask('bower', 'bowerTask');
   grunt.loadNpmTasks('grunt-bower');
+  grunt.renameTask('bower', 'gruntBower');
+  grunt.loadNpmTasks('grunt-requirejs');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-clean');
-  grunt.loadNpmTasks('grunt-contrib-concat');
-  grunt.loadNpmTasks('grunt-contrib-uglify');
+//  grunt.loadNpmTasks('grunt-contrib-concat');
+//  grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.renameTask('watch', 'gruntWatch');
 
   // Default task.
-  grunt.registerTask('doBower', ['bowerInstall', 'bower']);
+  grunt.registerTask('bower', ['bowerTask', 'gruntBower']);
   grunt.registerTask('default', ['jshint','build']);
-  grunt.registerTask('build', ['clean', 'doBower', 'concat']);
-  grunt.registerTask('release', ['build','uglify:dist','jshint']);
+//  grunt.registerTask('build', ['clean', 'requirejs:detourDev', 'requirejs:detourDevAmd']);
+  grunt.registerTask('build', ['requirejs:detourDev', 'requirejs:detourDevAmd']);
+  grunt.registerTask('release', ['build','requirejs:detourMin', 'requirejs:detourMinAmd','jshint']);
+  grunt.registerTask('watch', ['gruntWatch']);
 
   // Print a timestamp (useful for when watching)
   grunt.registerTask('timestamp', function() {
@@ -44,13 +50,56 @@ module.exports = function(grunt) {
       '//close self-invoking anonymous function\n' +
       '}());\n',
     clean: ['<%= dirs.dist %>/*'],
-    bower: {
+    gruntBower: {
       dev: {
         dest: '<%= dirs.dist %>/dependencies'
       }
     },
-    bowerInstall: {
+    gruntWatch:{
+      files:['<%= dirs.src.js %>'],
+      tasks:['default']
+    },
+    bowerTask: {
       install: {
+      }
+    },
+    requirejs: {
+      options: {
+        wrap: {
+          start: '<%= banner %>(function() {',
+          end: '}());'
+        },
+        baseUrl: 'src',
+        paths: {
+          'couchPotato': '../lib/angular-couchPotato/angular-couchPotato.min'
+        },
+        include: ['angular-detour']
+      },
+      detourDev: {
+        options: {
+          almond: true,
+          out: '<%= dirs.dist %>/<%= pkg.name %>.js',
+          optimize: 'none',
+          insertRequire: ['angular-detour']
+        }
+      },
+      detourDevAmd: {
+        options: {
+          out: '<%= dirs.dist %>/<%= pkg.name %>.amd.js'
+          , optimize: 'none'
+        }
+      },
+      detourMin: {
+        options: {
+          almond: true,
+          out: '<%= dirs.dist %>/<%= pkg.name %>.min.js',
+          insertRequire: ['angular-detour']
+        }
+      },
+      detourMinAmd: {
+        options: {
+          out: '<%= dirs.dist %>/<%= pkg.name %>.amd.min.js'
+        }
       }
     },
     concat:{

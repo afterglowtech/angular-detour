@@ -1,4 +1,4 @@
-define([], function () {
+define(['angular-detour'], function () {
   'use strict';
 
   var app = angular.module('app', ['agt.detour']);

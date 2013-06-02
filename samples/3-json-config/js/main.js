@@ -1,5 +1,8 @@
 require.config({
-  baseUrl: '/js'
+  baseUrl: 'js',
+  paths: {
+    'angular-detour': '/dist/angular-detour.amd'
+  }
 });
 
 require( [
