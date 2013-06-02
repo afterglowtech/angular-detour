@@ -113,12 +113,18 @@ function initializeStateChild(root, parent, child, childName, statesByName) {
       : null;
 
   var url = child.definition.url;
+  child.urlMatchers = [];
+
   if (typeof url !== 'undefined') {
     if (url.charAt(0) === '^') {
-      child.urlMatcher = new UrlMatcher(url.substring(1));
+      child.urlMatchers.push(new UrlMatcher(url.substring(1)));
     } else {
-      child.urlMatcher = ((parent && parent.navigable) || root).urlMatcher.concat(url);
+      child.urlMatchers.push(((parent && parent.navigable) || root).urlMatchers[0].concat(url));
     }
+  }
+
+  for (var alias in child.definition.aliases) {
+    child.urlMatchers.push(new UrlMatcher(alias, true));
   }
 
   if (child.children) {
@@ -138,7 +144,7 @@ function loadStates(statesFile) {
   jsonConvertOne(statesDefinition, 'fallback', 'f', expand);
   jsonConvertOne(statesDefinition, 'serial', 's', expand);
 
-  statesDefinition.urlMatcher = new UrlMatcher('');
+  statesDefinition.urlMatchers = [new UrlMatcher('')];
 
   littleStates = {
     t: statesDefinition.tree,
@@ -158,23 +164,26 @@ function getStateForRoute(children, route) {
   var matchState = null;
   for (var childName in children) {
     var child = children[childName];
-    if (child.urlMatcher && child.urlMatcher.exec(route)) {
-      if (child.definition['abstract']) {
-        matchState = getStateForRoute(child.children, route);
-        if (matchState) {
-          return matchState;
+    if (child.urlMatchers) {
+      for (var i = 0; i < child.urlMatchers.length; i++) {
+        var urlMatcher = child.urlMatchers[i];
+        if (urlMatcher.exec(route)) {
+          if (child.definition['abstract']) {
+            matchState = getStateForRoute(child.children, route);
+            if (matchState) {
+              return matchState;
+            }
+          }
+          else {
+            return child;
+          }
         }
-      }
-      else {
-        return child;
       }
     }
-    else {
-      if (child.children) {
-        matchState = getStateForRoute(child.children, route);
-        if (matchState) {
-          return matchState;
-        }
+    if (child.children) {
+      matchState = getStateForRoute(child.children, route);
+      if (matchState) {
+        return matchState;
       }
     }
   }

@@ -43,7 +43,7 @@ module.exports = UrlMatcher;
  *   URL matching this matcher (i.e. any string for which {@link UrlMatcher#exec exec()} returns
  *   non-null) will start with this prefix.
  */
-function UrlMatcher(pattern) {
+function UrlMatcher(pattern, ignoreUrlParams) {
 
   // Find all placeholders and create a compiled pattern, using either classic or curly syntax:
   //   '*' name
@@ -105,10 +105,17 @@ function UrlMatcher(pattern) {
     this.sourcePath = pattern.substring(0, last+i);
 
     // Allow parameters to be separated by '?' as well as '&' to make concat() easier
-    forEach(search.substring(1).split(/[&?]/), addParameter);
+    var searchRes = search.substring(1).split(/[&?]/);
+    for (var j = 0; j < searchRes.length; j++) {
+      addParameter(searchRes[j]);
+    }
   } else {
     this.sourcePath = pattern;
     this.sourceSearch = '';
+  }
+
+  if (ignoreUrlParams) {
+    this.ignoreUrlParams = true;
   }
 
   compiled += quoteRegExp(segment) + '$';
@@ -171,11 +178,14 @@ UrlMatcher.prototype.exec = function (path, searchParams) {
     nPath = this.segments.length-1,
     values = {}, i;
 
-  for (i=0; i<nPath; i++) {
-    values[params[i]] = decodeURIComponent(m[i+1]);
-  }
-  for (/**/; i<nTotal; i++) {
-    values[params[i]] = searchParams[params[i]];
+  if (!this.ignoreUrlParams) {
+
+    for (i=0; i<nPath; i++) {
+      values[params[i]] = decodeURIComponent(m[i+1]);
+    }
+    for (/**/; i<nTotal; i++) {
+      values[params[i]] = searchParams[params[i]];
+    }
   }
 
   return values;

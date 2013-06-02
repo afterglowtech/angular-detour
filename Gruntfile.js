@@ -70,6 +70,7 @@ module.exports = function(grunt) {
           'src/templateFactory.js',
           'src/urlMatcherFactory.js',
           'src/stateLoader.js',
+          'src/stateBase.js',
           'src/detour.js',
           'src/viewDirective.js'
         ],
