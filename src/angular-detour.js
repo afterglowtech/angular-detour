@@ -1,0 +1,4 @@
+define([
+  './detourProvider',
+  './viewDirective'
+], function() {});
