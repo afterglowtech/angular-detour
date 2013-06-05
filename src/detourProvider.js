@@ -1,4 +1,4 @@
-define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', './stateLoader','templateFactory', './detourModule'], function(common, UrlMatcher, StateBase) {
+define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory', './detourModule'], function(common, UrlMatcher, StateBase) {
   var   matchSvc = '$match'
       , abstractVar = 'abstract'
       , detourSvc = '$detour'
@@ -345,28 +345,39 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', './stateLoader','t
     }
     this.mergeJson = mergeJson;
 
-    this.lazy = false;
+    //default: lazy not enabled, autoUpdate not enabled (period 0)
+    var loader = {
+      lazy: {
+        enabled: false,
+        getRouteUrl: null,
+        getStateUrl: null,
+        routeParameter: 'r',
+        stateParameter: 's'
+      },
+      knownStatesParameter: 'k',
+      getUpdatesUrl: null,
+      crossDomain: false,
+      autoUpdateMinutes: 0
+    };
+    this.loader = loader;
+
 
     //***************************************
     //service definition
     //***************************************
-    function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato) {
+    function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato, $http) {
 
       var TransitionSuperseded = $q.reject(new Error('transition superseded'));
       var TransitionPrevented = $q.reject(new Error('transition prevented'));
+
+      var loader = that.loader;
 
       var $detour = {
         params: {},
         current: statesTree.self,
         $current: statesTree,
+        stateLoader: loader,
         transition: null
-      };
-
-      var lazy = that.lazy;
-      var stateLoader = null;
-
-      $detour.setStateLoader = function(loader) {
-        stateLoader = loader;
       };
 
       $detour.registerValue = $couchPotato.registerValue;
@@ -386,12 +397,76 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', './stateLoader','t
 
       $detour.mergeJson = mergeJson;
 
+      var httpConfig = $http.defaults;
+
+      function lazyDoGet(requestUrl) {
+        var deferred = $q.defer();
+
+        var config = null;
+        if (loader.crossDomain) {
+          config = angular.copy(httpConfig, config);
+          delete config.headers.common['X-Requested-With'];
+          config.useXDomain = true;
+        }
+        else
+        {
+          config = httpConfig;
+        }
+
+        $http({method: 'GET', url: requestUrl, config: config}).
+          success(function(data, status, headers, config) {
+            deferred.resolve(angular.fromJson(data));
+          }).
+          error(function(data, status, headers, config) {
+            deferred.resolve(null);
+          });
+
+        return deferred.promise;
+      }
+
+      function getLazyRoute(route) {
+        var requestUrl = loader.lazy.getRouteUrl
+          + '?' + loader.lazy.routeParameter + '=' + encodeURIComponent(route)
+          + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
+
+        var deferred = $q.defer();
+        lazyDoGet(requestUrl).then(
+          function(json) {
+            if (json) {
+              statesTree.mergeJson(json);
+            }
+            deferred.resolve();
+          }
+        );
+
+        return deferred.promise;
+      }
+
+      function getLazyState(stateName) {
+        var requestUrl = loader.lazy.getStateUrl
+          + '?' + loader.lazy.stateParameter + '=' + encodeURIComponent(stateName)
+          + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
+
+        var deferred = $q.defer();
+        lazyDoGet(requestUrl).then(
+          function(json) {
+            if (json) {
+              statesTree.mergeJson(json);
+            }
+            deferred.resolve();
+          }
+        );
+
+        return deferred.promise;
+      }
+
+
       //***************************************
       //transitionTo
       //***************************************
       function transitionTo(to, toParams, updateLocation, secondTry) {
         var toState = statesTree.getState(to);
-        if (!toState && lazy && !secondTry) {
+        if (!toState && loader.lazy.enabled && !secondTry) {
           return getLazyState(to).then(function() {
             return transitionTo(to, toParams, updateLocation, true);
           });
@@ -667,7 +742,7 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', './stateLoader','t
 
       // TODO: Optimize groups of rules with non-empty prefix into some sort of decision tree
       function update(event, next, current, secondTry) {
-        var doFallback = !lazy || secondTry;
+        var doFallback = !loader.lazy.enabled || secondTry;
 
         var handled = statesTree.tryHandle($injector, $location, doFallback);
         if (handled) {
@@ -676,41 +751,11 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', './stateLoader','t
           }
         }
 
-        if (!handled && !secondTry && lazy) {
+        if (!handled && !secondTry && loader.lazy.enabled) {
           getLazyRoute($location.path()).then(function() {
             update(event, next, current, true);
           });
         }
-      }
-
-      function getLazyRoute(route) {
-        var deferred = $q.defer();
-
-        stateLoader.getRoute(route, statesTree.knownStates).then(
-          function(json) {
-            if (json) {
-              statesTree.mergeJson(json);
-            }
-            deferred.resolve();
-          }
-        );
-
-        return deferred.promise;
-      }
-
-      function getLazyState(stateName) {
-        var deferred = $q.defer();
-
-        stateLoader.getState(stateName, statesTree.knownStates).then(
-          function(json) {
-            if (json) {
-              statesTree.mergeJson(json);
-            }
-            deferred.resolve();
-          }
-        );
-
-        return deferred.promise;
       }
 
       $rootScope.$on('$locationChangeSuccess', update);
@@ -722,7 +767,7 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', './stateLoader','t
 
       return $detour;
     }
-    $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato', '$stateLoader'];
+    $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato', '$http'];
     this.$get = $get;
 
   }

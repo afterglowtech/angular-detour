@@ -14,11 +14,12 @@ module.exports = function(grunt) {
 
   // Default task.
   grunt.registerTask('bower', ['bowerTask', 'gruntBower']);
-  grunt.registerTask('default', ['jshint','build']);
+  grunt.registerTask('default', ['build']);
 //  grunt.registerTask('build', ['clean', 'requirejs:detourDev', 'requirejs:detourDevAmd']);
-  grunt.registerTask('build', ['requirejs:detourDev', 'requirejs:detourDevAmd']);
+  grunt.registerTask('build', ['jshint', 'clean', 'bower', 'requirejs:detourDev', 'requirejs:detourDevAmd']);
+  grunt.registerTask('rebuild', ['requirejs:detourDev', 'requirejs:detourDevAmd']);
   grunt.registerTask('release', ['build','requirejs:detourMin', 'requirejs:detourMinAmd','jshint']);
-  grunt.registerTask('watch', ['gruntWatch']);
+  grunt.registerTask('watch', ['build', 'gruntWatch']);
 
   // Print a timestamp (useful for when watching)
   grunt.registerTask('timestamp', function() {
@@ -29,6 +30,8 @@ module.exports = function(grunt) {
   grunt.initConfig({
     dirs: {
       dist: 'dist',
+      components: 'components',
+      lib: 'lib',
       src: {
         js: ['src/**/*.js']
       }
@@ -49,7 +52,7 @@ module.exports = function(grunt) {
     footer:
       '//close self-invoking anonymous function\n' +
       '}());\n',
-    clean: ['<%= dirs.dist %>/*'],
+    clean: ['<%= dirs.dist %>/*', '<%= dirs.components %>/*', '<%= dirs.lib %>/*'],
     gruntBower: {
       dev: {
         dest: '<%= dirs.dist %>/dependencies'
@@ -57,7 +60,7 @@ module.exports = function(grunt) {
     },
     gruntWatch:{
       files:['<%= dirs.src.js %>'],
-      tasks:['default']
+      tasks:['rebuild']
     },
     bowerTask: {
       install: {

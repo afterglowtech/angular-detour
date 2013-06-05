@@ -3,8 +3,8 @@ define(['angular-detour'], function () {
 
   var app = angular.module('app', ['agt.detour']);
 
-  app.config([ '$locationProvider', '$provide', '$detourProvider', '$stateLoaderProvider',
-    function($locationProvider, $provide, $detourProvider, $stateLoaderProvider) {
+  app.config([ '$locationProvider', '$provide', '$detourProvider',
+    function($locationProvider, $provide, $detourProvider) {
       //comment out the decorator function for html5mode
       //uncomment the decorator function for forced hash(bang) mode
       // $provide.decorator('$sniffer', function($delegate) {
@@ -13,17 +13,14 @@ define(['angular-detour'], function () {
       // });
       $locationProvider.html5Mode(true);
 
-      $detourProvider.lazy = true;
-      $stateLoaderProvider.getRouteUrl = '/svc/getRoute';
-      $stateLoaderProvider.getStateUrl = '/svc/getState';
-      $stateLoaderProvider.getUpdatesUrl = '/svc/getUpdates';
+      $detourProvider.loader.lazy.enabled = true;
+      $detourProvider.loader.lazy.getRouteUrl = '/svc/getRoute';
+      $detourProvider.loader.lazy.getStateUrl = '/svc/getState';
     }
   ]);
 
-  app.run([ '$rootScope', '$detour', '$stateParams', '$stateLoader',
-    function($rootScope,   $detour,   $stateParams, $stateLoader) {
-
-      $detour.setStateLoader($stateLoader);
+  app.run([ '$rootScope', '$detour', '$stateParams',
+    function($rootScope,   $detour,   $stateParams) {
 
       //"cheating" so that detour is available in requirejs
       //define modules -- we want run-time registration of components

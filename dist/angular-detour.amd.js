@@ -1,4 +1,4 @@
-/*! angular-detour - v0.2.0 - 2013-06-02
+/*! angular-detour - v0.3.0 - 2013-06-05
  * https://github.com/afterglowtech/angular-detour
  * Copyright (c) 2013 Stu Salsbury;
  *    Based on and uses software code found at https://github.com/angular-ui/ui-router which is 
@@ -354,6 +354,7 @@ define('StateBase',['./common', 'UrlMatcher'], function(common, UrlMatcher) {
   function StateBase() {
     this.children = {};
   }
+
 
   //*********************************************
   // initialize
@@ -1026,118 +1027,6 @@ define('detourModule',['couchPotato'], function() {
   return angular.module('agt.detour', ['agt.couchPotato']);
 });
 
-define('stateLoader',['./detourModule'], function() {
-// var   matchSvc = '$match'
-//       , abstractVar = 'abstract'
-//       , detourSvc = '$detour'
-// ;
-
-function $StateLoaderProvider(
-  // $urlMatcherFactory
-) {
-  var that = this;
-
-  this.getRouteUrl = null;
-  this.getStateUrl = null;
-  this.knownStatesParameter = 'k';
-  this.routeParameter = 'r';
-  this.stateParameter = 's';
-  this.getUpdatesUrl = null;
-
-  //***************************************
-  //service definition
-  //***************************************
-  function $get(
-    $q, $location, $http
-    // $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato
-  ) {
-
-    function StateLoader() {
-      this._getRouteUrl = that.getRouteUrl;
-      this._getStateUrl = that.getStateUrl;
-      this._knownStatesParameter = that.knownStatesParameter;
-      this._routeParameter = that.routeParameter;
-      this._stateParameter = that.stateParameter;
-      this._getUpdatesUrl = that.getUpdatesUrl;
-
-      function doGet(requestUrl) {
-        var deferred = $q.defer();
-
-        $http({method: 'GET', url: requestUrl}).
-          success(function(data, status, headers, config) {
-            console.log(data);
-            deferred.resolve(angular.fromJson(data));
-          }).
-          error(function(data, status, headers, config) {
-            deferred.resolve(null);
-          });
-
-        return deferred.promise;
-      }
-
-      this.getRoute = function(route, knownStates) {
-        var requestUrl = this.getRouteUrl
-          + '?' + this.routeParameter + '=' + encodeURIComponent(route)
-          + '&' + this.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(knownStates));
-
-        return doGet(requestUrl);
-      };
-
-      this.getState = function(stateName, knownStates) {
-        var requestUrl = this.getStateUrl
-          + '?' + this.stateParameter + '=' + encodeURIComponent(stateName)
-          + '&' + this.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(knownStates));
-
-        return doGet(requestUrl);
-      };
-
-
-    }
-
-    Object.defineProperty(StateLoader.prototype, 'getRouteUrl', {
-      get: function() { return this._getRouteUrl; },
-      set: function(val) { this._getRouteUrl = val; }
-    });
-
-    Object.defineProperty(StateLoader.prototype, 'getStateUrl', {
-      get: function() { return this._getStateUrl; },
-      set: function(val) { this._getStateUrl = val; }
-    });
-
-    Object.defineProperty(StateLoader.prototype, 'knownStatesParameter', {
-      get: function() { return this._knownStatesParameter; },
-      set: function(val) { this._knownStatesParameter = val; }
-    });
-
-    Object.defineProperty(StateLoader.prototype, 'routeParameter', {
-      get: function() { return this._routeParameter; },
-      set: function(val) { this._routeParameter = val; }
-    });
-
-    Object.defineProperty(StateLoader.prototype, 'stateParameter', {
-      get: function() { return this._stateParameter; },
-      set: function(val) { this._stateParameter = val; }
-    });
-
-    Object.defineProperty(StateLoader.prototype, 'getUpdatesUrl', {
-      get: function() { return this._getUpdatesUrl; },
-      set: function(val) { this._getUpdatesUrl = val; }
-    });
-
-    return new StateLoader();
-  }
-  $get.$inject = ['$q', '$location', '$http'];
-  // $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato'];
-  this.$get = $get;
-
-}
-// $LazyLoaderProvider.$inject = ['$urlMatcherFactoryProvider'];
-
-angular.module('agt.detour')
-  .provider('$stateLoader', $StateLoaderProvider);
-
-});
-
 define('templateFactory',['./detourModule'], function() {
   /**
    * Service. Manages loading of templates.
@@ -1251,7 +1140,7 @@ define('templateFactory',['./detourModule'], function() {
 
 });
 
-define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', './stateLoader','templateFactory', './detourModule'], function(common, UrlMatcher, StateBase) {
+define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory', './detourModule'], function(common, UrlMatcher, StateBase) {
   var   matchSvc = '$match'
       , abstractVar = 'abstract'
       , detourSvc = '$detour'
@@ -1598,28 +1487,39 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
     }
     this.mergeJson = mergeJson;
 
-    this.lazy = false;
+    //default: lazy not enabled, autoUpdate not enabled (period 0)
+    var loader = {
+      lazy: {
+        enabled: false,
+        getRouteUrl: null,
+        getStateUrl: null,
+        routeParameter: 'r',
+        stateParameter: 's'
+      },
+      knownStatesParameter: 'k',
+      getUpdatesUrl: null,
+      crossDomain: false,
+      autoUpdateMinutes: 0
+    };
+    this.loader = loader;
+
 
     //***************************************
     //service definition
     //***************************************
-    function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato) {
+    function $get(   $rootScope,   $q,   $templateFactory,   $injector,   $stateParams,   $location, $couchPotato, $http) {
 
       var TransitionSuperseded = $q.reject(new Error('transition superseded'));
       var TransitionPrevented = $q.reject(new Error('transition prevented'));
+
+      var loader = that.loader;
 
       var $detour = {
         params: {},
         current: statesTree.self,
         $current: statesTree,
+        stateLoader: loader,
         transition: null
-      };
-
-      var lazy = that.lazy;
-      var stateLoader = null;
-
-      $detour.setStateLoader = function(loader) {
-        stateLoader = loader;
       };
 
       $detour.registerValue = $couchPotato.registerValue;
@@ -1639,12 +1539,76 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
 
       $detour.mergeJson = mergeJson;
 
+      var httpConfig = $http.defaults;
+
+      function lazyDoGet(requestUrl) {
+        var deferred = $q.defer();
+
+        var config = null;
+        if (loader.crossDomain) {
+          config = angular.copy(httpConfig, config);
+          delete config.headers.common['X-Requested-With'];
+          config.useXDomain = true;
+        }
+        else
+        {
+          config = httpConfig;
+        }
+
+        $http({method: 'GET', url: requestUrl, config: config}).
+          success(function(data, status, headers, config) {
+            deferred.resolve(angular.fromJson(data));
+          }).
+          error(function(data, status, headers, config) {
+            deferred.resolve(null);
+          });
+
+        return deferred.promise;
+      }
+
+      function getLazyRoute(route) {
+        var requestUrl = loader.lazy.getRouteUrl
+          + '?' + loader.lazy.routeParameter + '=' + encodeURIComponent(route)
+          + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
+
+        var deferred = $q.defer();
+        lazyDoGet(requestUrl).then(
+          function(json) {
+            if (json) {
+              statesTree.mergeJson(json);
+            }
+            deferred.resolve();
+          }
+        );
+
+        return deferred.promise;
+      }
+
+      function getLazyState(stateName) {
+        var requestUrl = loader.lazy.getStateUrl
+          + '?' + loader.lazy.stateParameter + '=' + encodeURIComponent(stateName)
+          + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
+
+        var deferred = $q.defer();
+        lazyDoGet(requestUrl).then(
+          function(json) {
+            if (json) {
+              statesTree.mergeJson(json);
+            }
+            deferred.resolve();
+          }
+        );
+
+        return deferred.promise;
+      }
+
+
       //***************************************
       //transitionTo
       //***************************************
       function transitionTo(to, toParams, updateLocation, secondTry) {
         var toState = statesTree.getState(to);
-        if (!toState && lazy && !secondTry) {
+        if (!toState && loader.lazy.enabled && !secondTry) {
           return getLazyState(to).then(function() {
             return transitionTo(to, toParams, updateLocation, true);
           });
@@ -1920,7 +1884,7 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
 
       // TODO: Optimize groups of rules with non-empty prefix into some sort of decision tree
       function update(event, next, current, secondTry) {
-        var doFallback = !lazy || secondTry;
+        var doFallback = !loader.lazy.enabled || secondTry;
 
         var handled = statesTree.tryHandle($injector, $location, doFallback);
         if (handled) {
@@ -1929,41 +1893,11 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
           }
         }
 
-        if (!handled && !secondTry && lazy) {
+        if (!handled && !secondTry && loader.lazy.enabled) {
           getLazyRoute($location.path()).then(function() {
             update(event, next, current, true);
           });
         }
-      }
-
-      function getLazyRoute(route) {
-        var deferred = $q.defer();
-
-        stateLoader.getRoute(route, statesTree.knownStates).then(
-          function(json) {
-            if (json) {
-              statesTree.mergeJson(json);
-            }
-            deferred.resolve();
-          }
-        );
-
-        return deferred.promise;
-      }
-
-      function getLazyState(stateName) {
-        var deferred = $q.defer();
-
-        stateLoader.getState(stateName, statesTree.knownStates).then(
-          function(json) {
-            if (json) {
-              statesTree.mergeJson(json);
-            }
-            deferred.resolve();
-          }
-        );
-
-        return deferred.promise;
       }
 
       $rootScope.$on('$locationChangeSuccess', update);
@@ -1975,7 +1909,7 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
 
       return $detour;
     }
-    $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato', '$stateLoader'];
+    $get.$inject = ['$rootScope', '$q', '$templateFactory', '$injector', '$stateParams', '$location', '$couchPotato', '$http'];
     this.$get = $get;
 
   }
