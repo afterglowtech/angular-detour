@@ -13,9 +13,15 @@ define(['angular-detour'], function () {
       // });
       $locationProvider.html5Mode(true);
 
-      $detourProvider.loader.lazy.enabled = true;
-      $detourProvider.loader.lazy.getRouteUrl = '/svc/getRoute';
-      $detourProvider.loader.lazy.getStateUrl = '/svc/getState';
+      $detourProvider.loader = {
+        lazy : {
+          enabled: true,
+          routeUrl: '/svc/getRoute',
+          stateUrl: '/svc/getState'
+        },
+        crossDomain: true,
+        httpMethod: 'POST'
+      };
     }
   ]);
 

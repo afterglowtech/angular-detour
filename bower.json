@@ -1,6 +1,6 @@
 {
   "name": "angular-detour",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "main": [
     "dist/angular-detour.min.js"
   ],

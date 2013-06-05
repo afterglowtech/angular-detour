@@ -346,20 +346,27 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
     this.mergeJson = mergeJson;
 
     //default: lazy not enabled, autoUpdate not enabled (period 0)
-    var loader = {
+    var _loader = {
       lazy: {
         enabled: false,
-        getRouteUrl: null,
-        getStateUrl: null,
+        routeUrl: null,
+        stateUrl: null,
         routeParameter: 'r',
         stateParameter: 's'
       },
+      httpMethod: 'GET',
       knownStatesParameter: 'k',
-      getUpdatesUrl: null,
+      updatesUrl: null,
       crossDomain: false,
       autoUpdateMinutes: 0
     };
-    this.loader = loader;
+
+    Object.defineProperty(this, 'loader', {
+      get: function() { return _loader; },
+      set: function(val) {
+        _loader = common.deepMerge(_loader, val);
+      }
+    });
 
 
     //***************************************
@@ -413,7 +420,7 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
           config = httpConfig;
         }
 
-        $http({method: 'GET', url: requestUrl, config: config}).
+        $http({method: loader.httpMethod, url: requestUrl, config: config}).
           success(function(data, status, headers, config) {
             deferred.resolve(angular.fromJson(data));
           }).
@@ -425,7 +432,7 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
       }
 
       function getLazyRoute(route) {
-        var requestUrl = loader.lazy.getRouteUrl
+        var requestUrl = loader.lazy.routeUrl
           + '?' + loader.lazy.routeParameter + '=' + encodeURIComponent(route)
           + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
 
@@ -443,7 +450,7 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
       }
 
       function getLazyState(stateName) {
-        var requestUrl = loader.lazy.getStateUrl
+        var requestUrl = loader.lazy.stateUrl
           + '?' + loader.lazy.stateParameter + '=' + encodeURIComponent(stateName)
           + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
 

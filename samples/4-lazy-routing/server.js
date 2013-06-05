@@ -314,8 +314,25 @@ app.get('/svc/getRoute', function(req, res, next) {
   var ks = JSON.parse(req.query.k);
   res.json(getRoute(req.query.r, ks));
 });
+app.post('/svc/getRoute', function(req, res, next) {
+  var ks = JSON.parse(req.query.k);
+  res.json(getRoute(req.query.r, ks));
+});
+app.put('/svc/getRoute', function(req, res, next) {
+  var ks = JSON.parse(req.query.k);
+  res.json(getRoute(req.query.r, ks));
+});
+
 
 app.get('/svc/getState', function(req, res, next) {
+  var ks = JSON.parse(req.query.k);
+  res.json(getState(req.query.s, ks));
+});
+app.post('/svc/getState', function(req, res, next) {
+  var ks = JSON.parse(req.query.k);
+  res.json(getState(req.query.s, ks));
+});
+app.put('/svc/getState', function(req, res, next) {
   var ks = JSON.parse(req.query.k);
   res.json(getState(req.query.s, ks));
 });

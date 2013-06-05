@@ -82,6 +82,46 @@ define([], function() {
       return extend(new (extend(function() {}, { prototype: parent }))(), extra);
     };
 
+    function deepMerge(target, src) {
+        var array = Array.isArray(src);
+        var dst = array && [] || {};
+
+        if (array) {
+            target = target || [];
+            dst = dst.concat(target);
+            forEach(src, function(e, i) {
+                if (typeof e === 'object') {
+                    dst[i] = deepMerge(target[i], e);
+                } else {
+                    if (target.indexOf(e) === -1) {
+                        dst.push(e);
+                    }
+                }
+            });
+        } else {
+            if (target && typeof target === 'object') {
+                forEach(Object.keys(target), function (key) {
+                    dst[key] = target[key];
+                });
+            }
+            forEach(Object.keys(src), function (key) {
+                if (typeof src[key] !== 'object' || !src[key]) {
+                    dst[key] = src[key];
+                }
+                else {
+                    if (!target[key]) {
+                        dst[key] = src[key];
+                    } else {
+                        dst[key] = deepMerge(target[key], src[key]);
+                    }
+                }
+            });
+        }
+
+        return dst;
+    }
+    this.deepMerge = deepMerge;
+
     this.merge = function(dst) {
       forEach(arguments, function(obj) {
         if (obj !== dst) {
@@ -94,6 +134,7 @@ define([], function() {
       });
       return dst;
     };
+
   }
 
   return new Common();

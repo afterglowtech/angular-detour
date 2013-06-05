@@ -1,4 +1,4 @@
-/*! angular-detour - v0.3.0 - 2013-06-05
+/*! angular-detour - v0.3.1 - 2013-06-05
  * https://github.com/afterglowtech/angular-detour
  * Copyright (c) 2013 Stu Salsbury;
  *    Based on and uses software code found at https://github.com/angular-ui/ui-router which is 
@@ -90,6 +90,46 @@ define('common',[], function() {
       return extend(new (extend(function() {}, { prototype: parent }))(), extra);
     };
 
+    function deepMerge(target, src) {
+        var array = Array.isArray(src);
+        var dst = array && [] || {};
+
+        if (array) {
+            target = target || [];
+            dst = dst.concat(target);
+            forEach(src, function(e, i) {
+                if (typeof e === 'object') {
+                    dst[i] = deepMerge(target[i], e);
+                } else {
+                    if (target.indexOf(e) === -1) {
+                        dst.push(e);
+                    }
+                }
+            });
+        } else {
+            if (target && typeof target === 'object') {
+                forEach(Object.keys(target), function (key) {
+                    dst[key] = target[key];
+                });
+            }
+            forEach(Object.keys(src), function (key) {
+                if (typeof src[key] !== 'object' || !src[key]) {
+                    dst[key] = src[key];
+                }
+                else {
+                    if (!target[key]) {
+                        dst[key] = src[key];
+                    } else {
+                        dst[key] = deepMerge(target[key], src[key]);
+                    }
+                }
+            });
+        }
+
+        return dst;
+    }
+    this.deepMerge = deepMerge;
+
     this.merge = function(dst) {
       forEach(arguments, function(obj) {
         if (obj !== dst) {
@@ -102,6 +142,7 @@ define('common',[], function() {
       });
       return dst;
     };
+
   }
 
   return new Common();
@@ -1488,20 +1529,27 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
     this.mergeJson = mergeJson;
 
     //default: lazy not enabled, autoUpdate not enabled (period 0)
-    var loader = {
+    var _loader = {
       lazy: {
         enabled: false,
-        getRouteUrl: null,
-        getStateUrl: null,
+        routeUrl: null,
+        stateUrl: null,
         routeParameter: 'r',
         stateParameter: 's'
       },
+      httpMethod: 'GET',
       knownStatesParameter: 'k',
-      getUpdatesUrl: null,
+      updatesUrl: null,
       crossDomain: false,
       autoUpdateMinutes: 0
     };
-    this.loader = loader;
+
+    Object.defineProperty(this, 'loader', {
+      get: function() { return _loader; },
+      set: function(val) {
+        _loader = common.deepMerge(_loader, val);
+      }
+    });
 
 
     //***************************************
@@ -1555,7 +1603,7 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
           config = httpConfig;
         }
 
-        $http({method: 'GET', url: requestUrl, config: config}).
+        $http({method: loader.httpMethod, url: requestUrl, config: config}).
           success(function(data, status, headers, config) {
             deferred.resolve(angular.fromJson(data));
           }).
@@ -1567,7 +1615,7 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
       }
 
       function getLazyRoute(route) {
-        var requestUrl = loader.lazy.getRouteUrl
+        var requestUrl = loader.lazy.routeUrl
           + '?' + loader.lazy.routeParameter + '=' + encodeURIComponent(route)
           + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
 
@@ -1585,7 +1633,7 @@ define('detourProvider',['./common', 'UrlMatcher', 'StateBase', 'couchPotato', '
       }
 
       function getLazyState(stateName) {
-        var requestUrl = loader.lazy.getStateUrl
+        var requestUrl = loader.lazy.stateUrl
           + '?' + loader.lazy.stateParameter + '=' + encodeURIComponent(stateName)
           + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
 
