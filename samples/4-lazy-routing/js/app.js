@@ -13,6 +13,7 @@ define(['angular-detour'], function () {
       // });
       $locationProvider.html5Mode(true);
 
+      //configure loader
       $detourProvider.loader = {
         lazy : {
           enabled: true,
@@ -20,7 +21,12 @@ define(['angular-detour'], function () {
           stateUrl: '/svc/getState'
         },
         crossDomain: true,
-        httpMethod: 'POST'
+        additionalParams: {
+          myParam1: 'test',
+          myParam2: {
+            jsonSubObj: true
+          }
+        }
       };
     }
   ]);

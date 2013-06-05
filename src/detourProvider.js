@@ -354,7 +354,6 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
         routeParameter: 'r',
         stateParameter: 's'
       },
-      httpMethod: 'GET',
       knownStatesParameter: 'k',
       updatesUrl: null,
       crossDomain: false,
@@ -393,7 +392,6 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
       $detour.registerDirective = $couchPotato.registerDirective;
       $detour.registerController = $couchPotato.registerController;
 
-
       $detour.state = state;
       $detour.otherwise = otherwise;
       $detour.initialize = initialize;
@@ -406,9 +404,10 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
 
       var httpConfig = $http.defaults;
 
-      function lazyDoGet(requestUrl) {
+      function lazyDo(requestUrl) {
         var deferred = $q.defer();
 
+        //TODO: shouldn't do this on every request
         var config = null;
         if (loader.crossDomain) {
           config = angular.copy(httpConfig, config);
@@ -420,7 +419,7 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
           config = httpConfig;
         }
 
-        $http({method: loader.httpMethod, url: requestUrl, config: config}).
+        $http({method: 'GET', url: requestUrl, config: config}).
           success(function(data, status, headers, config) {
             deferred.resolve(angular.fromJson(data));
           }).
@@ -436,8 +435,12 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
           + '?' + loader.lazy.routeParameter + '=' + encodeURIComponent(route)
           + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
 
+        for (var paramName in loader.additionalParams) {
+          requestUrl += '&' + encodeURIComponent(paramName) + '=' + encodeURIComponent(loader.additionalParams[paramName]);
+        }
+
         var deferred = $q.defer();
-        lazyDoGet(requestUrl).then(
+        lazyDo(requestUrl).then(
           function(json) {
             if (json) {
               statesTree.mergeJson(json);
@@ -454,8 +457,12 @@ define(['./common', 'UrlMatcher', 'StateBase', 'couchPotato', 'templateFactory',
           + '?' + loader.lazy.stateParameter + '=' + encodeURIComponent(stateName)
           + '&' + loader.knownStatesParameter + '=' + encodeURIComponent(angular.toJson(statesTree.knownStates));
 
+        for (var paramName in loader.additionalParams) {
+          requestUrl += '&' + encodeURIComponent(paramName) + '=' + encodeURIComponent(loader.additionalParams[paramName]);
+        }
+
         var deferred = $q.defer();
-        lazyDoGet(requestUrl).then(
+        lazyDo(requestUrl).then(
           function(json) {
             if (json) {
               statesTree.mergeJson(json);
