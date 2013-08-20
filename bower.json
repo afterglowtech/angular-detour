@@ -1,6 +1,6 @@
 {
   "name": "angular-detour",
-  "version": "0.4.0",
+  "version": "0.0.5",
   "main": [
     "dist/angular-detour.min.js"
   ],
@@ -22,6 +22,6 @@
   "devDependencies": {
     "angular-couchPotato" : "afterglowtech/angular-couchPotato#0.0.4",
     "angular": "johannestroeger/bower-angular-unstable",
-    "requirejs": "~2.1.5"
+    "requirejs": "~2.1.6"
   }
 }

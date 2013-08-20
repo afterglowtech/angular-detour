@@ -1,7 +1,7 @@
 {
   "name": "angular-detour",
   "description": "Lazy-loaded/runtime-configurable/server-defined routing for AngularJS applications",
-  "version": "0.4.0",
+  "version": "0.0.5",
   "homepage": "https://github.com/afterglowtech/angular-detour",
   "author": {
     "name": "Stu Salsbury",
@@ -19,8 +19,8 @@
   ],
   "dependencies": {},
   "devDependencies": {
-    "express": "~3.2.5",
-    "grunt-cli": ">= 0.1.7",
+    "express": "~3.3.4",
+    "grunt": "~0.4.1",
     "grunt-bower": "~0.5.1",
     "grunt-bower-task": "~0.2.3",
     "grunt-contrib-jshint": "~0.4.3",
