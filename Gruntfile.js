@@ -15,7 +15,6 @@ module.exports = function(grunt) {
   // Default task.
   grunt.registerTask('bower', ['bowerTask', 'gruntBower']);
   grunt.registerTask('default', ['build']);
-//  grunt.registerTask('build', ['clean', 'requirejs:detourDev', 'requirejs:detourDevAmd']);
   grunt.registerTask('build', ['jshint', 'clean', 'bower', 'requirejs:detourDev', 'requirejs:detourDevAmd']);
   grunt.registerTask('rebuild', ['requirejs:detourDev', 'requirejs:detourDevAmd']);
   grunt.registerTask('release', ['build','requirejs:detourMin', 'requirejs:detourMinAmd','jshint']);
@@ -64,6 +63,9 @@ module.exports = function(grunt) {
     },
     bowerTask: {
       install: {
+        options: {
+          copy: false
+        }
       }
     },
     requirejs: {
@@ -74,7 +76,8 @@ module.exports = function(grunt) {
         },
         baseUrl: 'src',
         paths: {
-          'couchPotato': '../lib/angular-couchPotato/angular-couchPotato.min'
+          'couchPotato': '../dist/dependencies/angular-couch-potato',
+          'angular': 'empty:'
         },
         include: ['angular-detour']
       },
@@ -117,7 +120,7 @@ module.exports = function(grunt) {
           }
         },
         src: [
-          'lib/angular-couchPotato/angular-CouchPotato.min.js',
+          'lib/angular-couch-potato/angular-couch-potato.js',
           'src/common.js',
           'src/templateFactory.js',
           'src/urlMatcherFactory.js',

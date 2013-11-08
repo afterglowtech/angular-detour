@@ -1,5 +1,5 @@
 dist/dependencies
-components
+bower_components
 lib
 node_modules
 

@@ -1,7 +1,13 @@
 require.config({
   baseUrl: 'js',
   paths: {
-    'angular-detour': '/dist/angular-detour.amd'
+    'angular-detour': '/dist/angular-detour.amd',
+    'angular': '/dist/dependencies/angular'
+  },
+  shim: {
+    'angular-detour': {
+      deps: ['angular']
+    }
   }
 });
 
