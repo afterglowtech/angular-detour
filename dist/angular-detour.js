@@ -1,4 +1,4 @@
-/*! angular-detour - v0.0.5 - 2013-11-07
+/*! angular-detour - v0.6.0 - 2013-11-07
  * https://github.com/afterglowtech/angular-detour
  * Copyright (c) 2013 Stu Salsbury;
  *    Based on and uses software code found at https://github.com/angular-ui/ui-router which is 
