@@ -1,10 +1,5 @@
 # angular-detour
 
-# NOTE VERSION NUMBER
-
-The version number escaped semver alpha territory and shouldn't have.  The version
-number is now reset to 0.0.5.
-
 * implements a StatesTree-version of ui-router
 * allows runtime editing of configuration
 * supports merging json representations of routing definitions as initial configurations and as updates
